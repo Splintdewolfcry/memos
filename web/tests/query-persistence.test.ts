@@ -131,4 +131,55 @@ describe("round trip", () => {
 
     await expect(restoreQueryCache(reader, broken, "users/1")).resolves.toBe(false);
   });
+
+  it("retains cached data after a failed refetch", async () => {
+    const writer = new QueryClient();
+    writer.setQueryData(["memos", "detail", "memos/1"], { name: "memos/1", content: "offline memo" });
+    await saveQueryCache(writer, store, "users/1");
+
+    const reader = new QueryClient();
+    await restoreQueryCache(reader, store, "users/1");
+
+    // Simulate offline refetch failure: status becomes "error" but data is retained.
+    await reader
+      .fetchQuery({
+        queryKey: ["memos", "detail", "memos/1"],
+        queryFn: () => {
+          throw new Error("Network error");
+        },
+      })
+      .catch(() => {});
+    expect(reader.getQueryData(["memos", "detail", "memos/1"])).toEqual({ name: "memos/1", content: "offline memo" });
+
+    await saveQueryCache(reader, store, "users/1");
+
+    const third = new QueryClient();
+    const restored = await restoreQueryCache(third, store, "users/1");
+    expect(restored).toBe(true);
+    expect(third.getQueryData(["memos", "detail", "memos/1"])).toEqual({ name: "memos/1", content: "offline memo" });
+  });
+
+  it("does not overwrite a good cache with an empty dehydration", async () => {
+    const writer = new QueryClient();
+    writer.setQueryData(["memos", "detail", "memos/1"], { name: "memos/1" });
+    await saveQueryCache(writer, store, "users/1");
+
+    const empty = new QueryClient();
+    await saveQueryCache(empty, store, "users/1");
+
+    const reader = new QueryClient();
+    const restored = await restoreQueryCache(reader, store, "users/1");
+    expect(restored).toBe(true);
+    expect(reader.getQueryData(["memos", "detail", "memos/1"])).toEqual({ name: "memos/1" });
+  });
+
+  it("returns false when the persisted entry has no queries", async () => {
+    await store.set(persistedCacheKey("users/1"), {
+      savedAt: Date.now(),
+      state: { mutations: [], queries: [] },
+    });
+
+    const reader = new QueryClient();
+    expect(await restoreQueryCache(reader, store, "users/1")).toBe(false);
+  });
 });

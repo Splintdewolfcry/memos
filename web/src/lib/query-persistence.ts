@@ -34,9 +34,19 @@ export function persistedCacheKey(userName: string | undefined): string {
 export async function saveQueryCache(client: QueryClient, store: OfflineStore, userName: string | undefined): Promise<void> {
   try {
     const state = dehydrate(client, {
-      shouldDehydrateQuery: (query) => isPersistableQueryKey(query.queryKey) && query.state.status === "success",
+      // Persist queries that succeeded or still hold data after a failed refetch.
+      // Offline read-only display depends on keeping error-status-with-data entries
+      // so a cold start after a failed online refetch still shows cached memos.
+      shouldDehydrateQuery: (query) =>
+        isPersistableQueryKey(query.queryKey) && (query.state.status === "success" || query.state.data !== undefined),
       shouldDehydrateMutation: () => false,
     });
+    // An empty dehydration must never overwrite an existing entry: a client with
+    // no allowlisted queries (e.g. before any fetch completes) would otherwise
+    // erase the good cache on the next save.
+    if (state.queries.length === 0) {
+      return;
+    }
     const payload: PersistedCache = { savedAt: Date.now(), state };
     await store.set(persistedCacheKey(userName), payload);
   } catch (error) {
@@ -58,6 +68,10 @@ export async function restoreQueryCache(client: QueryClient, store: OfflineStore
       return false;
     }
 
+    // An empty cache is not a restored cache — treat it as absent.
+    if (persisted.state.queries.length === 0) {
+      return false;
+    }
     hydrate(client, persisted.state);
     for (const { queryKey } of persisted.state.queries) {
       client.invalidateQueries({ queryKey });
