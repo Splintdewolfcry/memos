@@ -36,6 +36,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
 const unavailable = () => new ConnectError("fetch failed", Code.Unavailable);
 const unauthenticated = () => new ConnectError("invalid token", Code.Unauthenticated);
+const unknownError = () => new ConnectError("fetch failed", Code.Unknown);
 
 const Probe = () => {
   const { currentUser, initialize, logout, isInitialized, isUserSettingsInitialized, isOffline } = useAuth();
@@ -149,6 +150,54 @@ describe("offline initialization", () => {
 
     await waitFor(() => expect(screen.getByTestId("user")).toHaveTextContent("users/1"));
     expect(clearAccessToken).not.toHaveBeenCalled();
+  });
+
+  it("preserves the session and restores offline when refresh fails with Code.Unknown", async () => {
+    // Connect 2.x wraps browser fetch-level failures as Code.Unknown, not
+    // Code.Unavailable. This is the realistic dead-connection error.
+    authState.hasToken = false;
+    authState.hasStored = true;
+    saveOfflineSession(create(UserSchema, { name: "users/1", username: "alice" }), {});
+    clients.getCurrentUser.mockRejectedValue(unknownError());
+    (refreshAccessToken as ReturnType<typeof vi.fn>).mockRejectedValueOnce(unknownError());
+
+    render(<Probe />, { wrapper });
+    fireEvent.click(screen.getByText("initialize"));
+
+    await waitFor(() => expect(screen.getByTestId("user")).toHaveTextContent("users/1"));
+    expect(screen.getByTestId("offline")).toHaveTextContent("yes");
+    expect(clearAccessToken).not.toHaveBeenCalled();
+  });
+
+  it("clears token and offline session when refresh fails with Code.Unauthenticated", async () => {
+    authState.hasToken = false;
+    authState.hasStored = true;
+    saveOfflineSession(create(UserSchema, { name: "users/1", username: "alice" }), {});
+    (refreshAccessToken as ReturnType<typeof vi.fn>).mockRejectedValueOnce(unauthenticated());
+
+    render(<Probe />, { wrapper });
+    fireEvent.click(screen.getByText("initialize"));
+
+    await waitFor(() => expect(clearAccessToken).toHaveBeenCalled());
+    expect(screen.getByTestId("user")).toHaveTextContent("none");
+    const { loadOfflineSession } = await import("@/lib/offline-session");
+    expect(loadOfflineSession("users/1")).toBeUndefined();
+  });
+
+  it("drops a stale offline entry when getCurrentUser succeeds for a different user", async () => {
+    // User A saved an entry and closed the tab. User B signs in; B's
+    // getCurrentUser succeeds. The stale entry for A must be cleared so B
+    // cannot see A's identity or tag settings if B's settings fetch later fails.
+    saveOfflineSession(create(UserSchema, { name: "users/A", username: "alice" }), {});
+    clients.getCurrentUser.mockResolvedValue({ user: create(UserSchema, { name: "users/B", username: "bob" }) });
+    clients.listUserSettings.mockResolvedValue({ settings: [] });
+
+    render(<Probe />, { wrapper });
+    fireEvent.click(screen.getByText("initialize"));
+
+    await waitFor(() => expect(screen.getByTestId("user")).toHaveTextContent("users/B"));
+    const { loadOfflineSession } = await import("@/lib/offline-session");
+    expect(loadOfflineSession("users/A")).toBeUndefined();
   });
 
   it("drops the persisted session on logout", async () => {

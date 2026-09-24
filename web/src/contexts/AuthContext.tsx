@@ -58,11 +58,13 @@ const UNAUTHENTICATED_STATE: AuthState = {
 
 /**
  * Distinguishes "the server is unreachable" from "the server rejected us".
- * Code.Unavailable is this codebase's network-failure signal — see
- * uploadService.ts and lib/memo-export.ts, which retry only on that code.
+ * Connect 2.x wraps browser fetch-level failures (DNS, TCP reset, CORS block)
+ * as Code.Unknown via ConnectError.from(reason), so Unknown must count as
+ * network failure alongside Unavailable (HTTP 429/502/503/504) and
+ * DeadlineExceeded (request timed out before any response).
  */
 function isNetworkFailure(error: unknown): boolean {
-  return hasConnectCode(error, Code.Unavailable) || navigator.onLine === false;
+  return hasConnectCode(error, Code.Unavailable, Code.Unknown, Code.DeadlineExceeded) || navigator.onLine === false;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -131,10 +133,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await refreshAccessToken();
       } catch (error) {
         // A refresh that failed because the network is down is not a dead
-        // session. Fall through to the offline restore below when we still hold
-        // a stored token, so an expired token plus no connectivity does not read
-        // as "logged out".
-        if (!isNetworkFailure(error) || !hasStoredToken()) {
+        // session. Only a definitive auth rejection (Unauthenticated or
+        // PermissionDenied) or the absence of any stored token warrants
+        // clearing the session. Anything else falls through to the offline
+        // restore path below, so an expired token plus a dead connection
+        // does not read as "logged out".
+        if (hasConnectCode(error, Code.Unauthenticated, Code.PermissionDenied) || !hasStoredToken()) {
+          clearAccessToken();
           clearOfflineSession();
           setState(UNAUTHENTICATED_STATE);
           return;
@@ -155,6 +160,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearOfflineSession();
         setState(UNAUTHENTICATED_STATE);
         return;
+      }
+
+      // Drop a stale offline entry from a different user so the restore path
+      // cannot resurrect another account's identity or tag settings.
+      if (getStoredOfflineUserName() !== currentUser.name) {
+        clearOfflineSession();
       }
 
       setState((prev) => ({ ...prev, currentUser, isIdentityInitialized: true, isOffline: false }));
