@@ -24,6 +24,11 @@ const (
 	frontendHTMLCacheControl        = "no-cache, no-store, must-revalidate"
 	frontendStaticAssetCacheControl = "public, max-age=3600"
 	frontendHashedAssetCacheControl = "public, max-age=2592000, immutable"
+	// The service worker script and the manifest must never be pinned by an
+	// intermediary. Cloudflare edge-caches .js by default, so a max-age here
+	// would leave clients running a stale worker - and a stale worker serving a
+	// stale shell is the failure mode offline caching exists to remove.
+	frontendServiceWorkerCacheControl = "no-cache"
 )
 
 type FrontendService struct {
@@ -97,6 +102,11 @@ func setFrontendCacheHeaders(c *echo.Context, requestPath string) {
 		return
 	}
 
+	if isServiceWorkerAsset(requestPath) {
+		c.Response().Header().Set(echo.HeaderCacheControl, frontendServiceWorkerCacheControl)
+		return
+	}
+
 	cacheControl := frontendStaticAssetCacheControl
 	if strings.HasPrefix(requestPath, "/assets/") {
 		cacheControl = frontendHashedAssetCacheControl
@@ -106,6 +116,18 @@ func setFrontendCacheHeaders(c *echo.Context, requestPath string) {
 
 func shouldServeFrontendHTML(requestPath string) bool {
 	return requestPath == "/" || requestPath == "/index.html" || path.Ext(requestPath) == ""
+}
+
+// isServiceWorkerAsset reports whether the path must be revalidated on every
+// request rather than cached by the browser or an intermediary such as
+// Cloudflare. Mirrors PRECACHE_BYPASS in web/scripts/sw-routing.mjs.
+func isServiceWorkerAsset(requestPath string) bool {
+	switch requestPath {
+	case "/sw.js", "/site.webmanifest", "/manifest.webmanifest":
+		return true
+	default:
+		return false
+	}
 }
 
 func hasPathPrefix(requestPath, prefix string) bool {

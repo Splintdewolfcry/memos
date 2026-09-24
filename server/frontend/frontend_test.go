@@ -54,6 +54,16 @@ func TestFrontendService_CacheHeaderRules(t *testing.T) {
 			path:         "/logo.webp",
 			cacheControl: frontendStaticAssetCacheControl,
 		},
+		{
+			name:         "service worker is always revalidated",
+			path:         "/sw.js",
+			cacheControl: frontendServiceWorkerCacheControl,
+		},
+		{
+			name:         "web manifest is always revalidated",
+			path:         "/site.webmanifest",
+			cacheControl: frontendServiceWorkerCacheControl,
+		},
 	}
 
 	e := echo.New()
@@ -75,10 +85,16 @@ func TestFrontendService_CacheHeaderRules(t *testing.T) {
 func TestFrontendService_StaticCacheHeaders(t *testing.T) {
 	ctx := context.Background()
 	testStore := teststore.NewTestingStore(ctx, t)
+	defer testStore.Close()
 
 	e := echo.New()
 	NewFrontendService(&profile.Profile{}, testStore).Serve(ctx, e)
 
+	// The service worker and web manifest paths are asserted in
+	// TestFrontendService_CacheHeaderRules. This fixture drives the real router
+	// against the embedded dist/, which contains only index.html, so /sw.js and
+	// /site.webmanifest return 404 (they carry a file extension and are not
+	// served the SPA HTML fallback) and cannot use the 200 assertion below.
 	tests := []struct {
 		name         string
 		path         string
