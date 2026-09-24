@@ -1,8 +1,17 @@
+import { Code } from "@connectrpc/connect";
 import { useQueryClient } from "@tanstack/react-query";
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
-import { clearAccessToken, getAccessToken } from "@/auth-state";
+import { clearAccessToken, getAccessToken, hasStoredToken } from "@/auth-state";
 import { authServiceClient, refreshAccessToken, userServiceClient } from "@/connect";
 import { userKeys } from "@/hooks/useUserQueries";
+import { hasConnectCode } from "@/lib/error";
+import {
+  clearOfflineSession,
+  getStoredOfflineUserName,
+  loadOfflineSession,
+  type OfflineSession,
+  saveOfflineSession,
+} from "@/lib/offline-session";
 import type {
   User,
   UserSetting_GeneralSetting,
@@ -21,6 +30,8 @@ interface AuthState {
   isUserSettingsInitialized: boolean;
   isInitialized: boolean;
   isLoading: boolean;
+  /** The last initialization could not reach the server; state was restored locally. */
+  isOffline: boolean;
 }
 
 interface AuthContextValue extends AuthState {
@@ -42,7 +53,17 @@ const UNAUTHENTICATED_STATE: AuthState = {
   isUserSettingsInitialized: true,
   isInitialized: true,
   isLoading: false,
+  isOffline: false,
 };
+
+/**
+ * Distinguishes "the server is unreachable" from "the server rejected us".
+ * Code.Unavailable is this codebase's network-failure signal — see
+ * uploadService.ts and lib/memo-export.ts, which retry only on that code.
+ */
+function isNetworkFailure(error: unknown): boolean {
+  return hasConnectCode(error, Code.Unavailable) || navigator.onLine === false;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
@@ -55,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isUserSettingsInitialized: false,
     isInitialized: false,
     isLoading: true,
+    isOffline: false,
   });
 
   const fetchUserSettings = useCallback(async (userName: string) => {
@@ -83,6 +105,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return userSettings;
   }, []);
 
+  /**
+   * Rebuilds state from the persisted session. The identity here gates display
+   * and scopes the cache; it never authorizes a request. Offline, every request
+   * fails anyway and all data comes from the persisted query cache.
+   */
+  const restoreOfflineSession = useCallback((): OfflineSession | undefined => {
+    const storedUserName = getStoredOfflineUserName();
+    if (!storedUserName) return undefined;
+    return loadOfflineSession(storedUserName);
+  }, []);
+
   const initialize = useCallback(async () => {
     // `initialize` also runs after sign-in, when the previous unauthenticated
     // state is already marked initialized. Reset the full-readiness flag so
@@ -96,14 +129,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!getAccessToken()) {
       try {
         await refreshAccessToken();
-      } catch {
-        // Refresh failed - no valid session
+      } catch (error) {
+        // A refresh that failed because the network is down is not a dead
+        // session. Fall through to the offline restore below when we still hold
+        // a stored token, so an expired token plus no connectivity does not read
+        // as "logged out".
+        if (!isNetworkFailure(error) || !hasStoredToken()) {
+          clearOfflineSession();
+          setState(UNAUTHENTICATED_STATE);
+          return;
+        }
       }
     }
 
-    // If we still don't have a token after refresh attempt, skip getCurrentUser call
-    // to avoid unnecessary network request for unauthenticated users.
-    if (!getAccessToken()) {
+    if (!getAccessToken() && !hasStoredToken()) {
       setState(UNAUTHENTICATED_STATE);
       return;
     }
@@ -113,22 +152,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!currentUser) {
         clearAccessToken();
+        clearOfflineSession();
         setState(UNAUTHENTICATED_STATE);
         return;
       }
 
-      // Publish the verified identity immediately so route modules and their
-      // data queries can start while display-sensitive settings are loading.
-      setState((prev) => ({
-        ...prev,
-        currentUser,
-        isIdentityInitialized: true,
-      }));
+      setState((prev) => ({ ...prev, currentUser, isIdentityInitialized: true, isOffline: false }));
 
       queryClient.setQueryData(userKeys.currentUser(), currentUser);
       queryClient.setQueryData(userKeys.detail(currentUser.name), currentUser);
 
       const settings = await fetchUserSettings(currentUser.name);
+
+      saveOfflineSession(currentUser, {
+        general: settings.userGeneralSetting,
+        tags: settings.userTagsSetting,
+        webhooks: settings.userWebhooksSetting,
+      });
 
       setState({
         currentUser,
@@ -136,14 +176,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isIdentityInitialized: true,
         isUserSettingsInitialized: true,
         isInitialized: true,
+        isOffline: false,
         isLoading: false,
       });
     } catch (error) {
       console.error("Failed to initialize auth:", error);
-      clearAccessToken();
-      setState(UNAUTHENTICATED_STATE);
+
+      if (isNetworkFailure(error)) {
+        // Restore rather than log out. Every flag must be set: main.tsx gates on
+        // isIdentityInitialized, RequireFullInitializationRoute gates on
+        // isInitialized, and PagedMemoList withholds memo content until
+        // isUserSettingsInitialized — a partial restore still shows a blank page.
+        const restored = restoreOfflineSession();
+        if (restored) {
+          queryClient.setQueryData(userKeys.currentUser(), restored.user);
+          queryClient.setQueryData(userKeys.detail(restored.user.name), restored.user);
+          setState({
+            currentUser: restored.user,
+            userGeneralSetting: restored.general,
+            userTagsSetting: restored.tags,
+            userWebhooksSetting: restored.webhooks,
+            isIdentityInitialized: true,
+            isUserSettingsInitialized: true,
+            isInitialized: true,
+            isOffline: true,
+            isLoading: false,
+          });
+          return;
+        }
+        // Nothing to restore: keep the token so a reload can recover, but do not
+        // present an unverified identity.
+        setState((prev) => ({ ...prev, ...UNAUTHENTICATED_STATE }));
+        return;
+      }
+
+      if (hasConnectCode(error, Code.Unauthenticated, Code.PermissionDenied)) {
+        clearAccessToken();
+        clearOfflineSession();
+        setState(UNAUTHENTICATED_STATE);
+        return;
+      }
+
+      // Unclassified failure. Not evidence of a dead session, so the token stays;
+      // but we have no verified identity to render, so fall back to /auth.
+      setState((prev) => ({ ...prev, ...UNAUTHENTICATED_STATE }));
     }
-  }, [fetchUserSettings, queryClient]);
+  }, [fetchUserSettings, queryClient, restoreOfflineSession]);
 
   const logout = useCallback(async () => {
     try {
@@ -152,6 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("[AuthContext] Failed to sign out:", error);
     } finally {
       clearAccessToken();
+      clearOfflineSession();
       setState(UNAUTHENTICATED_STATE);
       queryClient.clear();
     }
