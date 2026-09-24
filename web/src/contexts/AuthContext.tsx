@@ -12,6 +12,9 @@ import {
   type OfflineSession,
   saveOfflineSession,
 } from "@/lib/offline-session";
+import { offlineStore } from "@/lib/offline-store-instance";
+import { removeAllQueryCaches } from "@/lib/query-persistence";
+import { clearAttachmentCache } from "@/lib/service-worker-registration";
 import type {
   User,
   UserSetting_GeneralSetting,
@@ -242,6 +245,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       clearAccessToken();
       clearOfflineSession();
+      if (offlineStore) {
+        void removeAllQueryCaches(offlineStore);
+      }
+      void clearAttachmentCache();
       setState(UNAUTHENTICATED_STATE);
       queryClient.clear();
     }

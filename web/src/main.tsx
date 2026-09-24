@@ -15,7 +15,11 @@ import { InstanceProvider, useInstance } from "@/contexts/InstanceContext";
 import { ViewProvider } from "@/contexts/ViewContext";
 import { useLiveMemoRefresh } from "@/hooks/useLiveMemoRefresh";
 import { useTokenRefreshOnFocus } from "@/hooks/useTokenRefreshOnFocus";
+import { getStoredOfflineUserName } from "@/lib/offline-session";
+import { offlineStore } from "@/lib/offline-store-instance";
 import { queryClient } from "@/lib/query-client";
+import { restoreQueryCache, saveQueryCache } from "@/lib/query-persistence";
+import { registerOfflineWorker } from "@/lib/service-worker-registration";
 import router from "./router";
 import { applyLocaleEarly } from "./utils/i18n";
 import { applyThemeEarly } from "./utils/theme";
@@ -49,6 +53,24 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
   // Live refresh: listen for memo changes via SSE and invalidate caches.
   useLiveMemoRefresh();
 
+  // Write the cache back after identity settles and whenever it changes, so the
+  // persisted copy is always scoped to the signed-in user.
+  useEffect(() => {
+    if (!offlineStore || !currentUser) return;
+    const store = offlineStore;
+    const timer = window.setInterval(() => {
+      void saveQueryCache(queryClient, store, currentUser.name);
+    }, 30_000);
+    const flush = () => void saveQueryCache(queryClient, store, currentUser?.name);
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", flush);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", flush);
+    };
+  }, [currentUser]);
+
   // Route loading and feed requests only need the verified identity and the
   // instance profile. Display-sensitive settings continue in the background;
   // PagedMemoList keeps memo content hidden until privacy settings have settled.
@@ -81,6 +103,24 @@ function Main() {
   );
 }
 
-const container = document.getElementById("root");
-const root = createRoot(container as HTMLElement);
-root.render(<Main />);
+/**
+ * Rehydrates the persisted query cache before first render. Restored entries are
+ * invalidated, so an online client refetches immediately and the cache only ever
+ * acts as a fallback — every online read stays a live query.
+ */
+async function bootstrap(): Promise<void> {
+  if (offlineStore) {
+    await restoreQueryCache(queryClient, offlineStore, getStoredOfflineUserName());
+  }
+
+  const container = document.getElementById("root");
+  const root = createRoot(container as HTMLElement);
+  root.render(<Main />);
+
+  // Register after load so the worker install does not compete with first paint.
+  window.addEventListener("load", () => {
+    void registerOfflineWorker();
+  });
+}
+
+void bootstrap();
