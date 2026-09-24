@@ -1,8 +1,9 @@
 import babel from "@rolldown/plugin-babel";
+import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { resolve } from "path";
 import { defineConfig } from "vite";
-import tailwindcss from "@tailwindcss/vite";
+import { offlineShell } from "./scripts/vite-plugin-offline-shell.mjs";
 
 let devProxyServer = "http://localhost:8081";
 if (process.env.DEV_PROXY_SERVER && process.env.DEV_PROXY_SERVER.length > 0) {
@@ -12,7 +13,7 @@ if (process.env.DEV_PROXY_SERVER && process.env.DEV_PROXY_SERVER.length > 0) {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), babel({ presets: [reactCompilerPreset()] }), tailwindcss()],
+  plugins: [react(), babel({ presets: [reactCompilerPreset()] }), tailwindcss(), offlineShell()],
   server: {
     host: "0.0.0.0",
     port: 3001,
