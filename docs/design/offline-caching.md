@@ -71,7 +71,8 @@ permanent spinner. Restoring user settings is a prerequisite, not an enhancement
 ## Goal
 
 On a device that has visited recently, a cold load with no connectivity renders the app shell
-and the signed-in user's memos, read-only, with a visible offline indicator.
+and the signed-in user's memos — including their images and attachments — read-only, with a
+visible offline indicator.
 
 Online behaviour is unchanged. Every read remains a live query: the cache is a fallback for
 when the network fails, never a substitute for fresh data. The design enforces this
@@ -83,7 +84,6 @@ stale API response.
 - Offline write queue, deferred sync, and conflict resolution. Multiple devices edit the same
   memos, so this needs real conflict handling rather than last-write-wins. Deferred to a
   separate design.
-- Attachment binary caching. v1 ships without it; see Open decisions for whether to revisit.
 - Background Sync API and push. Poor Safari support, and unnecessary without writes.
 
 ## Existing behaviour to preserve
@@ -160,9 +160,11 @@ Routing:
   `index.html`. Keeps the shell current online and renders offline.
 - Same-origin static assets — precache hit, else network then store. Hashed `/assets/*` are
   immutable, so cache-first is safe there.
-- Explicit bypass, never intercepted: `/api`, `/memos.api.v1`, `/memos.api.v1.*`, `/file`, and
-  the SSE endpoint. This mirrors `shouldSkipFrontendStatic` in `frontend.go:79` and keeps the
-  two lists in step.
+- Attachment and avatar requests (`/file/*`) — cache on success, serve from cache offline. See
+  Attachment caching below.
+- Explicit bypass, never intercepted: `/api`, `/memos.api.v1`, `/memos.api.v1.*`, and the SSE
+  endpoint. This mirrors `shouldSkipFrontendStatic` in `frontend.go:79` minus `/file`, which
+  this design now caches. Both lists carry a cross-reference comment so they cannot drift.
 
 Cache names carry the build hash; the `activate` handler deletes prior versions. Registration
 happens in `main.tsx` after the `load` event, guarded on secure context and feature detection,
@@ -174,6 +176,31 @@ memo refresh behaviour in `useLiveMemoRefresh.ts`.
 `navigator.storage.persist()` is requested at registration. Without it, Android Chrome may
 evict both Cache Storage and IndexedDB under storage pressure, silently reintroducing the
 original failure.
+
+#### Attachment caching
+
+`/file/attachments/:uid` and `/file/users/:identifier/avatar` are cached on success into a
+dedicated cache, so media volume can never evict the app shell.
+
+Three constraints follow from how `server/fileserver/fileserver.go` serves them:
+
+- **Only full `200` responses are stored.** `http.ServeContent` (`fileserver.go:259`) and the
+  S3 range path (`fileserver.go:389`) both return `206` for ranged requests, and the Cache API
+  rejects non-200 range responses. Requests carrying a `Range` header pass through untouched.
+  Images from `<img>` do not range, so they cache; seeking in audio and video does, so those
+  remain network-only.
+- **Size-capped LRU.** The attachment cache is bounded — default 500 MB, oldest evicted first —
+  so an unexpectedly media-heavy instance degrades by dropping old images instead of filling
+  the device. The storage estimate is surfaced in Settings per Phase 3.
+- **Cleared on logout.** Cache Storage is per-origin, not per-user. Private attachments cached
+  for one account must not be readable by the next person who signs in on that browser, so
+  logout deletes the attachment cache alongside the persisted query cache.
+
+Private attachments are served `private, no-store` (`fileserver.go:60`). That directive governs
+the HTTP cache and does not bind the Cache Storage API, so caching them is technically
+permitted — but it deliberately overrides a server-side policy that says "do not persist
+this." The override is the point of the feature and is accepted here. It is called out because
+it widens where private bytes live; the logout clearing above is what keeps it contained.
 
 ### Phase 3 — Persisted React Query cache
 
@@ -242,6 +269,9 @@ Frontend, in `web/tests/` following the existing flat convention:
 - New persister tests: allowlist filtering, per-user cache key, removal on logout, max-age
   expiry, restored entries marked stale.
 - `PagedMemoList` renders memo content from a restored cache while offline, with no spinner.
+- Service worker routing: navigation falls back to cached `index.html`; `/api`,
+  `/memos.api.v1` and SSE are never intercepted; a `206` or `Range` attachment response is not
+  stored; the attachment cache is size-capped and is cleared on logout.
 
 Backend: `go test ./server/frontend/...` for the header rules.
 
@@ -256,6 +286,12 @@ reads continue and writes are refused; cold-load offline after a fresh deploy.
   IndexedDB after the session ends. Content is per-user scoped and removed on logout, but
   logout is not the same as device handover. Consider an instance or user setting to disable
   offline caching; flagged for review rather than assumed.
+- **Attachment bytes widen that exposure.** Private images are cached despite the server's
+  `private, no-store`. Contained by logout clearing and the size cap, but the places private
+  content can now persist include Cache Storage, not only IndexedDB.
+- **Audio and video will not play offline.** They are served via ranged requests, which the
+  Cache API cannot store. Accepted: images and text cover the reported failure, and caching
+  whole media files would need a different mechanism entirely.
 - **Stale shell after deploy.** Mitigated by `no-cache` on `sw.js`, build-hash-keyed cache
   names, and cleanup on `activate`. `skipWaiting`/`clients.claim` must be used carefully so an
   update does not tear down an in-flight SSE connection.
@@ -267,12 +303,10 @@ reads continue and writes are refused; cold-load offline after a fresh deploy.
 
 ## Open decisions
 
-**Attachments (`/file/*`).** This design caches memo text and metadata, not image or attachment
-binaries. Offline, notes render but their images do not. Caching `/file/*` on success with a
-size-bounded LRU would make offline notes feel complete, at the cost of unbounded storage growth
-that a personal photo-heavy instance could exhaust quickly. Recommendation: ship v1 without it,
-then add a size-capped LRU if the gap is felt in practice. Needs a decision because the storage
-profile is qualitatively different from text.
+**Attachments (`/file/*`).** Resolved: in scope. This instance is not used as file storage, so
+attachment volume is low, and caching them makes offline notes complete rather than
+text-with-broken-images. Cached under the constraints in Phase 2 — full responses only,
+size-capped LRU, cleared on logout.
 
 **Workbox versus hand-rolled.** Hand-rolled is chosen here: the requirement is narrow
 (precache plus network-first), Workbox's main value is in runtime strategies this design
