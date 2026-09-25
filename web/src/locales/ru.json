@@ -1011,5 +1011,9 @@
     "name-placeholder": "например, Продукт",
     "spaces": "Пространства",
     "switch": "Сменить пространство"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

@@ -1011,5 +1011,9 @@
     "name-placeholder": "उदा. उत्पादन",
     "spaces": "स्पेसेस",
     "switch": "स्पेस बदला"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

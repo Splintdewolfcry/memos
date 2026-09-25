@@ -9,6 +9,7 @@ import AppSidebar, {
   SidebarResizeHandle,
   useSidebarWidth,
 } from "@/components/AppSidebar";
+import OfflineBanner from "@/components/OfflineBanner";
 import { AppSidebarProvider } from "@/contexts/AppSidebarContext";
 import { GlobalMemoEditorProvider } from "@/contexts/GlobalMemoEditorContext";
 import { useInstance } from "@/contexts/InstanceContext";
@@ -102,6 +103,7 @@ const RootLayoutContent = () => {
       >
         <MobileAppHeader />
         {profile.demo && <DemoBanner />}
+        <OfflineBanner />
         <Outlet />
       </main>
       <QuickFindDialog />

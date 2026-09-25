@@ -1011,5 +1011,9 @@
     "name-placeholder": "napr. Produkt",
     "spaces": "Priestory",
     "switch": "Prepnúť priestor"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

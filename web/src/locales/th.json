@@ -1011,5 +1011,9 @@
     "name-placeholder": "เช่น ผลิตภัณฑ์",
     "spaces": "พื้นที่",
     "switch": "สลับพื้นที่"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

@@ -1011,5 +1011,9 @@
     "no-shared-memos": "@{{username}} 尚未分享任何備忘錄。",
     "not-found-description": "此實例中沒有名為 @{{username}} 的 Memos 使用者。",
     "not-found-title": "找不到使用者"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

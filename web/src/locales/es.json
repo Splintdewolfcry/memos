@@ -1011,5 +1011,9 @@
     "name-placeholder": "p. ej. Producto",
     "spaces": "Espacios",
     "switch": "Cambiar espacio"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

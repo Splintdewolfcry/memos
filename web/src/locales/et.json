@@ -1011,5 +1011,9 @@
     "name-placeholder": "nt Toode",
     "spaces": "Ruumid",
     "switch": "Vaheta ruumi"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

@@ -1011,5 +1011,9 @@
     "name-placeholder": "例：製品",
     "spaces": "スペース",
     "switch": "スペースを切り替え"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

@@ -1011,5 +1011,9 @@
     "name-placeholder": "de ex. Produs",
     "spaces": "Spații",
     "switch": "Schimbă spațiul"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

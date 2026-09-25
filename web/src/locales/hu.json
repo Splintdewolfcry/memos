@@ -1011,5 +1011,9 @@
     "name-placeholder": "pl. Termék",
     "spaces": "Terek",
     "switch": "Tér váltása"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

@@ -14,6 +14,7 @@ import { memoServiceClient } from "@/connect";
 import { attachmentKeys } from "@/hooks/useAttachmentQueries";
 import { userKeys } from "@/hooks/useUserQueries";
 import { DEFAULT_LIST_MEMOS_PAGE_SIZE } from "@/lib/constants";
+import { isWriteBlocked } from "@/lib/offline-state";
 import { shouldRetry } from "@/lib/query-client";
 import type { ListMemosRequest, ListMemosResponse, Memo } from "@/types/proto/api/v1/memo_service_pb";
 import { ListMemoCommentsRequestSchema, ListMemosRequestSchema, MemoSchema } from "@/types/proto/api/v1/memo_service_pb";
@@ -234,6 +235,9 @@ export function useCreateMemo() {
 
   return useMutation({
     mutationFn: async (memoToCreate: Memo) => {
+      if (isWriteBlocked()) {
+        throw new ConnectError("You are offline. Reconnect to save this change.", Code.Unavailable);
+      }
       const memo = await memoServiceClient.createMemo({ memo: memoToCreate });
       return memo;
     },
@@ -255,6 +259,9 @@ export function useUpdateMemo() {
 
   return useMutation({
     mutationFn: async ({ update, updateMask }: { update: Partial<Memo>; updateMask: string[] }) => {
+      if (isWriteBlocked()) {
+        throw new ConnectError("You are offline. Reconnect to save this change.", Code.Unavailable);
+      }
       const memo = await memoServiceClient.updateMemo({
         memo: create(MemoSchema, update as Record<string, unknown>),
         updateMask: create(FieldMaskSchema, { paths: updateMask }),
@@ -262,6 +269,7 @@ export function useUpdateMemo() {
       return memo;
     },
     onMutate: async ({ update, updateMask }) => {
+      if (isWriteBlocked()) return { previousMemo: undefined };
       if (updateMask.includes("space")) return { previousMemo: undefined };
       if (!update.name) {
         return { previousMemo: undefined };
@@ -317,6 +325,9 @@ export function useDeleteMemo() {
 
   return useMutation({
     mutationFn: async (name: string) => {
+      if (isWriteBlocked()) {
+        throw new ConnectError("You are offline. Reconnect to save this change.", Code.Unavailable);
+      }
       await memoServiceClient.deleteMemo({ name });
       return name;
     },

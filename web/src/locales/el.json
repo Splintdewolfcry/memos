@@ -1011,5 +1011,9 @@
     "name-placeholder": "π.χ. Προϊόν",
     "spaces": "Χώροι",
     "switch": "Αλλαγή χώρου"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

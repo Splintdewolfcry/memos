@@ -1011,5 +1011,9 @@
       "description": "Bu yüklemeler hiçbir zaman bir nota eklenmedi. Bunları burada inceleyin veya kaldırın.",
       "title": "Bağlantısı kaldırılan yüklemeler"
     }
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

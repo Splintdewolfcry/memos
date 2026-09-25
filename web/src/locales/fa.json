@@ -1011,5 +1011,9 @@
     "name-placeholder": "مثال محصول",
     "spaces": "فضاها",
     "switch": "تغییر فضا"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

@@ -1011,5 +1011,9 @@
     "name-placeholder": "p. ex. Producte",
     "spaces": "Espais",
     "switch": "Canvia l'espai"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

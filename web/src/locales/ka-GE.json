@@ -1011,5 +1011,9 @@
     "name-placeholder": "მაგ. პროდუქტი",
     "spaces": "სივრცეები",
     "switch": "სივრცის შეცვლა"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

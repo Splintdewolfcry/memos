@@ -1011,5 +1011,9 @@
     "name-placeholder": "z. B. Produkt",
     "spaces": "Bereiche",
     "switch": "Bereich wechseln"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }

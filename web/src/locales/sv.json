@@ -1011,5 +1011,9 @@
     "name-placeholder": "t.ex. Produkt",
     "spaces": "Utrymmen",
     "switch": "Byt utrymme"
+  },
+  "offlineBanner": {
+    "title": "You're offline",
+    "description": "Changes can't be saved until you reconnect."
   }
 }
