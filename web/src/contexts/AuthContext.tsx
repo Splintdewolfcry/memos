@@ -13,7 +13,7 @@ import {
   saveOfflineSession,
 } from "@/lib/offline-session";
 import { offlineStore } from "@/lib/offline-store-instance";
-import { removeAllQueryCaches } from "@/lib/query-persistence";
+import { removeAllQueryCaches, removeQueryCache } from "@/lib/query-persistence";
 import { clearAttachmentCache } from "@/lib/service-worker-registration";
 import type {
   User,
@@ -166,8 +166,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Drop a stale offline entry from a different user so the restore path
-      // cannot resurrect another account's identity or tag settings.
+      // cannot resurrect another account's identity or tag settings. Remove the
+      // foreign query cache first (order matters — the name is needed for the key).
       if (getStoredOfflineUserName() !== currentUser.name) {
+        if (offlineStore) {
+          void removeQueryCache(offlineStore, getStoredOfflineUserName());
+        }
         clearOfflineSession();
       }
 

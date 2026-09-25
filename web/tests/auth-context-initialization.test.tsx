@@ -12,6 +12,8 @@ const clients = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   listUserSettings: vi.fn(),
 }));
+const removeQueryCacheMock = vi.hoisted(() => vi.fn());
+const fakeOfflineStore = vi.hoisted(() => ({ get: vi.fn(), set: vi.fn(), remove: vi.fn(), keys: vi.fn(), clear: vi.fn() }));
 
 vi.mock("@/auth-state", () => ({
   clearAccessToken: vi.fn(),
@@ -28,6 +30,19 @@ vi.mock("@/connect", () => ({
   userServiceClient: {
     listUserSettings: clients.listUserSettings,
   },
+}));
+
+vi.mock("@/lib/query-persistence", () => ({
+  removeQueryCache: (...args: unknown[]) => removeQueryCacheMock(...args),
+  removeAllQueryCaches: vi.fn(),
+}));
+
+vi.mock("@/lib/offline-store-instance", () => ({
+  offlineStore: fakeOfflineStore,
+}));
+
+vi.mock("@/lib/service-worker-registration", () => ({
+  clearAttachmentCache: vi.fn(),
 }));
 
 import { clearAccessToken } from "@/auth-state";
@@ -198,6 +213,23 @@ describe("offline initialization", () => {
     await waitFor(() => expect(screen.getByTestId("user")).toHaveTextContent("users/B"));
     const { loadOfflineSession } = await import("@/lib/offline-session");
     expect(loadOfflineSession("users/A")).toBeUndefined();
+  });
+
+  it("removes the foreign query cache when a different user signs in", async () => {
+    // User A's offline session and query cache exist. User B signs in;
+    // getCurrentUser succeeds. Both A's offline session AND A's query cache
+    // must be removed so A's memos cannot transiently render under B's account.
+    saveOfflineSession(create(UserSchema, { name: "users/A", username: "alice" }), {});
+    removeQueryCacheMock.mockClear();
+    clients.getCurrentUser.mockResolvedValue({ user: create(UserSchema, { name: "users/B", username: "bob" }) });
+    clients.listUserSettings.mockResolvedValue({ settings: [] });
+
+    render(<Probe />, { wrapper });
+    fireEvent.click(screen.getByText("initialize"));
+
+    await waitFor(() => expect(screen.getByTestId("user")).toHaveTextContent("users/B"));
+    // removeQueryCache was called with the foreign user's name (users/A)
+    expect(removeQueryCacheMock).toHaveBeenCalledWith(fakeOfflineStore, "users/A");
   });
 
   it("drops the persisted session on logout", async () => {
