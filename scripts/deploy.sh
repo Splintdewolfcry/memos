@@ -67,7 +67,7 @@ services:
     ports:
       - "$HOST_PORT:5230"
     volumes:
-      - "$DATA_DIR":/var/opt/memos
+      - "$DATA_DIR:/var/opt/memos"
 EOF
 docker compose --file "$COMPOSE_FILE" up --detach
 
