@@ -21,10 +21,10 @@ export function buildServiceWorker(template, bundle) {
   // are not required to render the shell.
   const precache = ["/index.html", ...fileNames.filter((name) => name.startsWith("assets/")).map((name) => `/${name}`)];
 
-  return template
-    .replaceAll("__BUILD_HASH__", buildHash)
-    .replace('["__PRECACHE_MANIFEST__"]', JSON.stringify(precache))
-    .replace("__PRECACHE_MANIFEST__", JSON.stringify(precache));
+  // Only the array literal is substituted. A fallback replace for a bare token
+  // would silently inline the manifest into prose again, so a stray token in the
+  // template is left in the output for the artifact check to catch.
+  return template.replaceAll("__BUILD_HASH__", buildHash).replace('["__PRECACHE_MANIFEST__"]', JSON.stringify(precache));
 }
 
 /** Vite plugin emitting dist/sw.js with the built asset manifest inlined. */
