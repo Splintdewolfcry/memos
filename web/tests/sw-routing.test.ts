@@ -192,7 +192,10 @@ describe("worker navigation handler", () => {
     const fake = createFakeCaches();
     const fetched = fakeResponse(200);
 
-    const response = await handleNavigation(navigation(), depsFor(fake, async () => fetched));
+    const response = await handleNavigation(
+      navigation(),
+      depsFor(fake, async () => fetched),
+    );
     await flush();
 
     expect(response).toBe(fetched);
@@ -205,7 +208,10 @@ describe("worker navigation handler", () => {
     const fake = createFakeCaches();
     const fetched = fakeResponse(502);
 
-    const response = await handleNavigation(navigation(), depsFor(fake, async () => fetched));
+    const response = await handleNavigation(
+      navigation(),
+      depsFor(fake, async () => fetched),
+    );
     await flush();
 
     expect(response).toBe(fetched);
@@ -235,7 +241,10 @@ describe("worker navigation handler", () => {
     fake.failPuts(1);
     const fetched = fakeResponse(200);
 
-    const response = await handleNavigation(navigation(), depsFor(fake, async () => fetched));
+    const response = await handleNavigation(
+      navigation(),
+      depsFor(fake, async () => fetched),
+    );
 
     expect(response).toBe(fetched);
   });
@@ -266,7 +275,11 @@ describe("worker asset handler", () => {
     fake.failPuts(1);
     const fetched = fakeResponse(200);
 
-    const response = await handleAsset(new Request("http://localhost/logo.webp"), "/logo.webp", depsFor(fake, async () => fetched));
+    const response = await handleAsset(
+      new Request("http://localhost/logo.webp"),
+      "/logo.webp",
+      depsFor(fake, async () => fetched),
+    );
 
     expect(response).toBe(fetched);
   });
@@ -278,7 +291,10 @@ describe("worker attachment handler", () => {
     const request = new Request("http://localhost/file/attachments/abc");
     const fetched = fakeResponse(200, 2048);
 
-    const response = await handleAttachment(request, depsFor(fake, async () => fetched));
+    const response = await handleAttachment(
+      request,
+      depsFor(fake, async () => fetched),
+    );
     await flush();
 
     expect(response).toBe(fetched);
@@ -291,7 +307,10 @@ describe("worker attachment handler", () => {
     fake.failPuts(1);
     const fetched = fakeResponse(200, 1024);
 
-    const response = await handleAttachment(new Request("http://localhost/file/attachments/new"), depsFor(fake, async () => fetched));
+    const response = await handleAttachment(
+      new Request("http://localhost/file/attachments/new"),
+      depsFor(fake, async () => fetched),
+    );
     await flush();
 
     expect(response).toBe(fetched);
