@@ -120,10 +120,14 @@ func shouldServeFrontendHTML(requestPath string) bool {
 
 // isServiceWorkerAsset reports whether the path must be revalidated on every
 // request rather than cached by the browser or an intermediary such as
-// Cloudflare. Mirrors PRECACHE_BYPASS in web/scripts/sw-routing.mjs.
+// Cloudflare. This is the no-cache header set, not a bypass list: the worker's
+// own never-intercept list is BYPASS_PREFIXES in web/scripts/sw-routing.mjs, and
+// the paths the frontend must not serve at all are in shouldSkipFrontendStatic
+// above. /sw-routing.mjs belongs here because sw.js imports it, so a stale copy
+// would pin a stale bypass list under a fresh worker.
 func isServiceWorkerAsset(requestPath string) bool {
 	switch requestPath {
-	case "/sw.js", "/site.webmanifest", "/manifest.webmanifest":
+	case "/sw.js", "/sw-routing.mjs", "/site.webmanifest", "/manifest.webmanifest":
 		return true
 	default:
 		return false

@@ -60,6 +60,11 @@ func TestFrontendService_CacheHeaderRules(t *testing.T) {
 			cacheControl: frontendServiceWorkerCacheControl,
 		},
 		{
+			name:         "service worker module dependency is always revalidated",
+			path:         "/sw-routing.mjs",
+			cacheControl: frontendServiceWorkerCacheControl,
+		},
+		{
 			name:         "web manifest is always revalidated",
 			path:         "/site.webmanifest",
 			cacheControl: frontendServiceWorkerCacheControl,
