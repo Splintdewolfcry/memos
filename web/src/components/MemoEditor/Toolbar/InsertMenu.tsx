@@ -3,6 +3,7 @@ import {
   CheckIcon,
   ImageIcon,
   LinkIcon,
+  ListTodoIcon,
   LoaderIcon,
   MapPinIcon,
   Maximize2Icon,
@@ -140,8 +141,9 @@ const InsertMenu = (props: InsertMenuProps) => {
     [props.onInsertImages],
   );
 
-  // Insert actions (add content).
-  const insertItems = [
+  // Overflow items: each opens a dialog or picker that owns focus (and gets the
+  // default trigger-return on close), so none of these hand focus to the editor.
+  const overflowItems = [
     { key: "attachment", label: t("editor.insert-menu.add-attachment"), icon: PaperclipIcon, onClick: handleAttachmentUploadClick },
     { key: "inline-image", label: t("editor.insert-menu.insert-image"), icon: ImageIcon, onClick: handleInlineImageUploadClick },
     { key: "audio", label: t("editor.audio-recorder.trigger"), icon: MicIcon, onClick: props.onAudioRecorderClick },
@@ -151,6 +153,22 @@ const InsertMenu = (props: InsertMenuProps) => {
 
   return (
     <>
+      {/* The to-do list verb, promoted out of the overflow menu: a quiet chip in
+          the same 28px rail box, sitting right beside the visibility selector.
+          It toggles the task-list marker at the caret on tap. Mobile has no
+          keyboard shortcut and no formatting toolbar, so this is its only
+          surface. */}
+      <Button
+        variant="quiet"
+        size="sm"
+        onClick={props.onInsertTaskList}
+        disabled={insertionDisabled}
+        aria-label={t("editor.format.task-list")}
+      >
+        <ListTodoIcon className="size-4 opacity-75" strokeWidth={1.8} />
+        <span className="truncate">{t("editor.format.task-list")}</span>
+      </Button>
+
       <DropdownMenu>
         <DropdownMenuTrigger
           render={<Button variant="outline" size="icon-compact" disabled={insertionDisabled} aria-label={t("common.add")} />}
@@ -162,7 +180,7 @@ const InsertMenu = (props: InsertMenuProps) => {
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" size="sm">
-          {insertItems.map((item) => (
+          {overflowItems.map((item) => (
             <DropdownMenuItem key={item.key} onClick={item.onClick} disabled={props.isSaving}>
               <item.icon />
               {item.label}

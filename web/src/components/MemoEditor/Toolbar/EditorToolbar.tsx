@@ -39,6 +39,7 @@ export const EditorToolbar: FC<EditorToolbarProps> = ({
   onAudioRecorderClick,
   viewToggles,
   onInsertImages,
+  onInsertTaskList,
 }) => {
   const t = useTranslate();
   const { actions, dispatch } = useEditorContext();
@@ -100,6 +101,7 @@ export const EditorToolbar: FC<EditorToolbarProps> = ({
           onAudioRecorderClick={onAudioRecorderClick}
           viewToggles={viewToggles}
           onInsertImages={onInsertImages}
+          onInsertTaskList={onInsertTaskList}
         />
         <VisibilitySelector value={visibility} space={space} onChange={handleVisibilityChange} />
       </div>

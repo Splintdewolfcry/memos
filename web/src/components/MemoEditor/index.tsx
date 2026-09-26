@@ -274,6 +274,16 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
   /** The ＋ menu's Insert image: inline at the caret. */
   const handleInsertImages = useCallback((files: File[]) => handleFiles(files, { inline: true }), [handleFiles]);
 
+  /** The rail's To-do chip: toggle the task-list marker on the current line,
+   * then hand focus back so typing continues after the inserted marker. The
+   * chip is a plain button (no menu focus manager), so a synchronous focus()
+   * after the toggle is safe and immediate. */
+  const handleInsertTaskList = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor || getState().ui.isLoading.saving) return;
+    editor.formatting?.run("taskList");
+    editor.focus();
+  }, [getState]);
   /**
    * A drop inlines images where they landed. A paste carries no placement
    * gesture, so it attaches like the ＋ menu's upload; the attachment list's
@@ -397,6 +407,7 @@ const MemoEditorImpl: React.FC<MemoEditorProps> = ({
             onAudioRecorderClick={handleAudioRecorderClick}
             viewToggles={viewToggles}
             onInsertImages={handleInsertImages}
+            onInsertTaskList={handleInsertTaskList}
           />
         </div>
       </div>

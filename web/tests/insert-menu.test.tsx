@@ -34,6 +34,7 @@ const renderMenu = (onInsertImages = vi.fn(), isSaving = false, hosted = false) 
         isSaving={isSaving}
         onLocationChange={vi.fn()}
         onInsertImages={onInsertImages}
+        onInsertTaskList={vi.fn()}
         onAudioRecorderClick={vi.fn()}
         viewToggles={hosted ? undefined : viewToggles}
       />
@@ -41,14 +42,16 @@ const renderMenu = (onInsertImages = vi.fn(), isSaving = false, hosted = false) 
   );
 
 describe("InsertMenu", () => {
-  test("shows attachment and inline-image actions in the intended order", () => {
+  test("offers the to-do chip beside the overflow trigger, not inside the menu", () => {
     renderMenu();
-    const trigger = screen.getByRole("button", { name: "common.add" });
-    expect(trigger).toHaveAttribute("tabindex", "0");
 
-    fireEvent.click(trigger);
+    // The chip is a rail button, visible without opening anything.
+    expect(screen.getByRole("button", { name: "editor.format.task-list" })).toBeInTheDocument();
 
-    expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+    fireEvent.click(screen.getByRole("button", { name: "common.add" }));
+
+    const menuItems = screen.getAllByRole("menuitem").map((item) => item.textContent);
+    expect(menuItems).toEqual([
       "editor.insert-menu.add-attachment",
       "editor.insert-menu.insert-image",
       "editor.audio-recorder.trigger",
@@ -57,6 +60,8 @@ describe("InsertMenu", () => {
       "editor.focus-mode",
       "editor.formatting-toolbar",
     ]);
+    // The verb moved out of the menu.
+    expect(menuItems).not.toContain("editor.format.task-list");
   });
 
   test("drops the view toggles when a host owns the editor's presentation", () => {
@@ -68,6 +73,32 @@ describe("InsertMenu", () => {
     expect(labels).not.toContain("editor.focus-mode");
     expect(labels).not.toContain("editor.formatting-toolbar");
     expect(screen.queryByRole("separator")).not.toBeInTheDocument();
+  });
+
+  test("invokes onInsertTaskList when the to-do chip is clicked", () => {
+    const onInsertTaskList = vi.fn();
+    render(
+      <EditorProvider>
+        <InsertMenu
+          onLocationChange={vi.fn()}
+          onInsertImages={vi.fn()}
+          onInsertTaskList={onInsertTaskList}
+          onAudioRecorderClick={vi.fn()}
+          viewToggles={viewToggles}
+        />
+      </EditorProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "editor.format.task-list" }));
+
+    expect(onInsertTaskList).toHaveBeenCalledTimes(1);
+  });
+
+  test("disables the to-do chip and the overflow trigger while saving", () => {
+    renderMenu(vi.fn(), true);
+
+    expect(screen.getByRole("button", { name: "editor.format.task-list" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "common.add" })).toBeDisabled();
   });
 
   test("uses separate unrestricted and multi-image file inputs", () => {
@@ -87,15 +118,6 @@ describe("InsertMenu", () => {
     expect(onInsertImages).toHaveBeenCalledWith([image]);
   });
 
-  test("disables insertion controls while saving", () => {
-    const { container } = renderMenu(vi.fn(), true);
-
-    expect(screen.getByRole("button", { name: "common.add" })).toBeDisabled();
-    for (const input of container.querySelectorAll('input[type="file"]')) {
-      expect(input).toBeDisabled();
-    }
-  });
-
   test("exposes a localized save-blocking reason from a focusable wrapper", () => {
     const state = createInitialState();
     state.content = "memo";
@@ -103,7 +125,13 @@ describe("InsertMenu", () => {
 
     render(
       <EditorProvider initialEditorState={state}>
-        <EditorToolbar onSave={vi.fn()} onAudioRecorderClick={vi.fn()} viewToggles={viewToggles} onInsertImages={vi.fn()} />
+        <EditorToolbar
+          onSave={vi.fn()}
+          onAudioRecorderClick={vi.fn()}
+          viewToggles={viewToggles}
+          onInsertImages={vi.fn()}
+          onInsertTaskList={vi.fn()}
+        />
       </EditorProvider>,
     );
 

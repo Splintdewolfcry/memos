@@ -74,6 +74,8 @@ export interface EditorToolbarProps {
   onAudioRecorderClick: () => void;
   viewToggles?: EditorViewToggles;
   onInsertImages: (files: File[]) => void;
+  /** The rail's To-do chip: toggles the task-list marker on the current line. */
+  onInsertTaskList: () => void;
 }
 
 export interface EditorMetadataProps {
@@ -114,6 +116,8 @@ export interface InsertMenuProps {
   onAudioRecorderClick?: () => void;
   viewToggles?: EditorViewToggles;
   onInsertImages: (files: File[]) => void;
+  /** The rail's To-do chip: toggles the task-list marker on the current line. */
+  onInsertTaskList: () => void;
 }
 
 export interface VisibilitySelectorProps {
