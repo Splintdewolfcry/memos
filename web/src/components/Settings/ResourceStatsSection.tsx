@@ -2,20 +2,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { RefreshCwIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { instanceKeys, useInstanceStats } from "@/hooks/useInstanceQueries";
+import { formatBytes } from "@/utils/format";
 import { useTranslate } from "@/utils/i18n";
 import { OfflineStorageStats } from "./OfflineStorageStats";
 import SettingGroup from "./SettingGroup";
 import { SettingList, SettingPanel, StatRow } from "./SettingList";
 import SettingSection from "./SettingSection";
-
-export const formatBytes = (bytes: number | bigint): string => {
-  const n = typeof bytes === "bigint" ? Number(bytes) : bytes;
-  if (n < 0) return "—";
-  if (n === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.min(units.length - 1, Math.floor(Math.log(n) / Math.log(1024)));
-  return `${(n / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
-};
 
 const formatRelativeTime = (date: Date): string => {
   const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));

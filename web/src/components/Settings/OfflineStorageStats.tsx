@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { type OfflineStorageUsage, readOfflineStorageUsage } from "@/lib/offline-store";
+import { formatBytes } from "@/utils/format";
 import { useTranslate } from "@/utils/i18n";
-import { formatBytes } from "./ResourceStatsSection";
 import SettingGroup from "./SettingGroup";
 import { SettingList, SettingListItem, StatValue } from "./SettingList";
 

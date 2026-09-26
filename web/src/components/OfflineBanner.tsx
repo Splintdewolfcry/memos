@@ -18,7 +18,11 @@ const OfflineBanner = () => {
   }
 
   return (
-    <div className={cn("static w-full shrink-0 border-b border-border bg-muted/70 px-4 py-2 text-sm text-muted-foreground sm:px-6")}>
+    <div
+      role="status"
+      aria-live="polite"
+      className={cn("static w-full shrink-0 border-b border-border bg-muted/70 px-4 py-2 text-sm text-muted-foreground sm:px-6")}
+    >
       <div className="mx-auto flex max-w-5xl flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-center sm:gap-2">
         <span className="font-medium text-foreground">{t("offlineBanner.title")}</span>
         <span>{t("offlineBanner.description")}</span>

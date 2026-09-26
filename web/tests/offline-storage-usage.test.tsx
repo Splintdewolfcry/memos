@@ -26,7 +26,7 @@ describe("OfflineStorageStats", () => {
 
     render(<OfflineStorageStats />);
 
-    // Exact copy pins reuse of ResourceStatsSection's formatBytes, not a bespoke formatter.
+    // Exact copy pins reuse of the shared formatBytes from @/utils/format, not a bespoke formatter.
     await waitFor(() => expect(screen.getByTestId("offline-usage")).toHaveTextContent("5.0 MB of 1.0 GB"));
     expect(screen.getByTestId("offline-persisted")).toHaveTextContent("setting.resource-stats.offline.persisted-yes");
   });

@@ -292,6 +292,11 @@ export function useUpdateMemo() {
       return { previousMemo };
     },
     onError: (_err, { update }, context) => {
+      // A blocked write never reached the server and onMutate skipped the
+      // optimistic patch, so there is nothing to roll back and nothing to
+      // refetch: invalidating here only starts a storm of requests that all
+      // fail the same way.
+      if (isWriteBlocked()) return;
       // Rollback on error
       if (context?.previousMemo && update.name) {
         queryClient.setQueryData(memoKeys.detail(update.name), context.previousMemo);

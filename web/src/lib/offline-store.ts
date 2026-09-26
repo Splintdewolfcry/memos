@@ -39,6 +39,18 @@ function run<T>(databaseName: string, mode: IDBTransactionMode, action: (store: 
         request.onsuccess = () => resolvePromise(request.result);
         request.onerror = () => rejectPromise(request.error);
         transaction.oncomplete = () => database.close();
+        // An aborted transaction — quota exceeded is the expected case — never
+        // fires oncomplete, so without these the connection leaks on every
+        // failed write, unbounded in exactly the condition offline caching
+        // provokes.
+        transaction.onabort = () => {
+          rejectPromise(transaction.error);
+          database.close();
+        };
+        transaction.onerror = () => {
+          rejectPromise(transaction.error);
+          database.close();
+        };
       }),
   );
 }

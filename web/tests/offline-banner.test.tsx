@@ -77,6 +77,8 @@ describe("OfflineBanner", () => {
 
     expect(screen.getByText("offlineBanner.title")).toBeInTheDocument();
     expect(screen.getByText("offlineBanner.description")).toBeInTheDocument();
+    // A transient connectivity message must be announced, not silently swapped in.
+    expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
   });
 
   it("warns when the session was restored from the offline cache", () => {
