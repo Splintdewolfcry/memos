@@ -4,6 +4,7 @@ import { createMemoryStore } from "@/lib/offline-store";
 import {
   isPersistableQueryKey,
   PERSISTED_CACHE_MAX_AGE_MS,
+  PERSISTED_CACHE_VERSION,
   persistedCacheKey,
   removeAllQueryCaches,
   removeQueryCache,
@@ -59,7 +60,11 @@ describe("per-user scoping", () => {
     expect(await store.keys()).toEqual([]);
 
     // Seeding the sentinel by hand must still not restore into an unknown session.
-    await store.set(persistedCacheKey(undefined), { savedAt: Date.now(), state: { mutations: [], queries: [] } });
+    await store.set(persistedCacheKey(undefined), {
+      version: PERSISTED_CACHE_VERSION,
+      savedAt: Date.now(),
+      state: { mutations: [], queries: [] },
+    });
     expect(await restoreQueryCache(new QueryClient(), store, undefined)).toBe(false);
   });
 
@@ -133,6 +138,68 @@ describe("round trip", () => {
 
     const reader = new QueryClient();
     expect(await restoreQueryCache(reader, store, "users/1")).toBe(false);
+    // The ceiling is only a bound if the stale entry is actually dropped.
+    expect(await store.keys()).toEqual([]);
+  });
+
+  it("rejects and removes an entry written by another schema version", async () => {
+    const writer = new QueryClient();
+    writer.setQueryData(["memos", "detail", "memos/1"], { name: "memos/1" });
+    await saveQueryCache(writer, store, "users/1");
+    const current = (await store.get<Record<string, unknown>>(persistedCacheKey("users/1"))) as Record<string, unknown>;
+    await store.set(persistedCacheKey("users/1"), { ...current, version: PERSISTED_CACHE_VERSION + 1 });
+
+    const reader = new QueryClient();
+    expect(await restoreQueryCache(reader, store, "users/1")).toBe(false);
+    expect(reader.getQueryData(["memos", "detail", "memos/1"])).toBeUndefined();
+    expect(await store.keys()).toEqual([]);
+  });
+
+  it("rejects and removes an entry whose savedAt is not a number", async () => {
+    // Every comparison against NaN is false, so an unvalidated timestamp would
+    // void the maximum age entirely.
+    const writer = new QueryClient();
+    writer.setQueryData(["memos", "detail", "memos/1"], { name: "memos/1" });
+    await saveQueryCache(writer, store, "users/1");
+    const current = (await store.get<Record<string, unknown>>(persistedCacheKey("users/1"))) as Record<string, unknown>;
+    await store.set(persistedCacheKey("users/1"), { ...current, savedAt: Number.NaN });
+
+    const reader = new QueryClient();
+    expect(await restoreQueryCache(reader, store, "users/1")).toBe(false);
+    expect(await store.keys()).toEqual([]);
+  });
+
+  it("keeps a query that has already left memory", async () => {
+    const writer = new QueryClient();
+    writer.setQueryData(["memos", "detail", "memos/1"], { name: "memos/1", content: "first read" });
+    writer.setQueryData(["memos", "detail", "memos/2"], { name: "memos/2", content: "second read" });
+    await saveQueryCache(writer, store, "users/1");
+
+    // gcTime dropped the older memo from memory. Retention is bounded by the
+    // store, so the next save must not drop it from disk as well.
+    writer.removeQueries({ queryKey: ["memos", "detail", "memos/1"] });
+    await saveQueryCache(writer, store, "users/1");
+
+    const reader = new QueryClient();
+    expect(await restoreQueryCache(reader, store, "users/1")).toBe(true);
+    expect(reader.getQueryData(["memos", "detail", "memos/1"])).toEqual({ name: "memos/1", content: "first read" });
+    expect(reader.getQueryData(["memos", "detail", "memos/2"])).toEqual({ name: "memos/2", content: "second read" });
+  });
+
+  it("replaces the older dehydration of the same query", async () => {
+    const writer = new QueryClient();
+    writer.setQueryData(["memos", "detail", "memos/1"], { name: "memos/1", content: "before edit" });
+    await saveQueryCache(writer, store, "users/1");
+
+    writer.setQueryData(["memos", "detail", "memos/1"], { name: "memos/1", content: "after edit" });
+    await saveQueryCache(writer, store, "users/1");
+
+    const entry = await store.get<{ state: { queries: unknown[] } }>(persistedCacheKey("users/1"));
+    expect(entry?.state.queries).toHaveLength(1);
+
+    const reader = new QueryClient();
+    expect(await restoreQueryCache(reader, store, "users/1")).toBe(true);
+    expect(reader.getQueryData(["memos", "detail", "memos/1"])).toEqual({ name: "memos/1", content: "after edit" });
   });
 
   it("survives a store that throws instead of breaking the app", async () => {
@@ -190,6 +257,7 @@ describe("round trip", () => {
 
   it("returns false when the persisted entry has no queries", async () => {
     await store.set(persistedCacheKey("users/1"), {
+      version: PERSISTED_CACHE_VERSION,
       savedAt: Date.now(),
       state: { mutations: [], queries: [] },
     });
