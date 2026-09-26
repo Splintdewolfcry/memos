@@ -14,16 +14,27 @@ export async function registerOfflineWorker(): Promise<void> {
   if (typeof window === "undefined" || !window.isSecureContext) return;
 
   try {
-    await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-    // Without this, Android Chrome may evict Cache Storage and IndexedDB under
-    // storage pressure, silently reintroducing the failure this worker prevents.
+    // sw.js is an ES module: it imports its routing decisions from
+    // ./sw-routing.mjs. Registering it as a classic worker makes the import a
+    // SyntaxError, so the registration rejects and no worker ever installs.
+    // Browsers without module-worker support throw a TypeError here, which the
+    // catch below turns into today's worker-less behaviour.
+    await navigator.serviceWorker.register("/sw.js", { scope: "/", type: "module" });
+  } catch (error) {
+    // A failed registration must not break the live app.
+    console.warn("Service worker registration failed:", error);
+  }
+
+  // Separate try: the persistence request is what keeps Android Chrome from
+  // evicting Cache Storage and IndexedDB under storage pressure, so a rejected
+  // registration must not skip it.
+  try {
     if (navigator.storage?.persist) {
       const granted = await navigator.storage.persist();
       if (!granted) console.warn("Persistent storage was not granted; offline cache may be evicted.");
     }
   } catch (error) {
-    // A failed registration must not break the live app.
-    console.warn("Service worker registration failed:", error);
+    console.warn("Persistent storage request failed:", error);
   }
 }
 

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  clearAttachmentCache,
   registerOfflineWorker,
   restorePersistedQueries,
   scheduleWorkerRegistration,
@@ -54,7 +55,8 @@ describe("registerOfflineWorker", () => {
 
     await registerOfflineWorker();
 
-    expect(register).toHaveBeenCalledWith("/sw.js", { scope: "/" });
+    // sw.js is an ES module; a classic registration rejects and installs nothing.
+    expect(register).toHaveBeenCalledWith("/sw.js", { scope: "/", type: "module" });
   });
 
   it("does nothing when service workers are unsupported", async () => {
@@ -85,11 +87,49 @@ describe("registerOfflineWorker", () => {
   });
 
   it("swallows a failed registration instead of breaking boot", async () => {
+    const persist = vi.fn(async () => true);
     register.mockRejectedValue(new Error("denied"));
-    vi.stubGlobal("navigator", { serviceWorker: { register }, storage: { persist: vi.fn(async () => true) } });
+    vi.stubGlobal("navigator", { serviceWorker: { register }, storage: { persist } });
     vi.stubGlobal("window", { ...window, isSecureContext: true, addEventListener: vi.fn() });
 
     await expect(registerOfflineWorker()).resolves.toBeUndefined();
+    // The persistence request must survive a rejected registration.
+    expect(persist).toHaveBeenCalled();
+  });
+});
+
+describe("clearAttachmentCache", () => {
+  const cacheKeys = ["memos-attachments-abc123", "memos-shell-abc123", "memos-attachments-def456", "unrelated-cache"];
+
+  it("deletes every attachment cache and leaves the rest", async () => {
+    const deleted: string[] = [];
+    vi.stubGlobal("caches", {
+      keys: async () => [...cacheKeys],
+      delete: async (key: string) => {
+        deleted.push(key);
+        return true;
+      },
+    });
+
+    await clearAttachmentCache();
+
+    expect(deleted.sort()).toEqual(["memos-attachments-abc123", "memos-attachments-def456"]);
+  });
+
+  it("returns without throwing where the Cache API is absent", async () => {
+    vi.stubGlobal("caches", undefined);
+
+    await expect(clearAttachmentCache()).resolves.toBeUndefined();
+  });
+
+  it("swallows a Cache Storage failure so logout cannot be blocked by it", async () => {
+    vi.stubGlobal("caches", {
+      keys: async () => {
+        throw new Error("SecurityError");
+      },
+    });
+
+    await expect(clearAttachmentCache()).resolves.toBeUndefined();
   });
 });
 
@@ -166,7 +206,7 @@ describe("scheduleWorkerRegistration", () => {
     scheduleWorkerRegistration();
 
     // Give the async register time to complete
-    await vi.waitFor(() => expect(register).toHaveBeenCalledWith("/sw.js", { scope: "/" }));
+    await vi.waitFor(() => expect(register).toHaveBeenCalledWith("/sw.js", { scope: "/", type: "module" }));
   });
 
   it("registers only after load event when readyState is not complete", async () => {
@@ -186,6 +226,6 @@ describe("scheduleWorkerRegistration", () => {
     const loadCallback = addEventListener.mock.calls[0][1];
     loadCallback();
 
-    await vi.waitFor(() => expect(register).toHaveBeenCalledWith("/sw.js", { scope: "/" }));
+    await vi.waitFor(() => expect(register).toHaveBeenCalledWith("/sw.js", { scope: "/", type: "module" }));
   });
 });
