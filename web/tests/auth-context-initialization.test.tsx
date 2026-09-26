@@ -13,6 +13,7 @@ const clients = vi.hoisted(() => ({
   listUserSettings: vi.fn(),
 }));
 const removeQueryCacheMock = vi.hoisted(() => vi.fn());
+const removeAllQueryCachesMock = vi.hoisted(() => vi.fn());
 const fakeOfflineStore = vi.hoisted(() => ({ get: vi.fn(), set: vi.fn(), remove: vi.fn(), keys: vi.fn(), clear: vi.fn() }));
 
 vi.mock("@/auth-state", () => ({
@@ -34,7 +35,7 @@ vi.mock("@/connect", () => ({
 
 vi.mock("@/lib/query-persistence", () => ({
   removeQueryCache: (...args: unknown[]) => removeQueryCacheMock(...args),
-  removeAllQueryCaches: vi.fn(),
+  removeAllQueryCaches: (...args: unknown[]) => removeAllQueryCachesMock(...args),
 }));
 
 vi.mock("@/lib/offline-store-instance", () => ({
@@ -244,5 +245,34 @@ describe("offline initialization", () => {
 
     const { loadOfflineSession } = await import("@/lib/offline-session");
     expect(loadOfflineSession("users/1")).toBeUndefined();
+  });
+
+  it("awaits persisted-cache destruction before finishing logout", async () => {
+    // handleSignOut calls window.location.replace the moment logout() resolves,
+    // and an unloaded document aborts pending IndexedDB and Cache Storage work.
+    // The destruction is the containment control for cached private data, so
+    // logout must not settle until it has run.
+    saveOfflineSession(create(UserSchema, { name: "users/1", username: "alice" }), {});
+    clients.getCurrentUser.mockRejectedValue(unavailable());
+
+    render(<Probe />, { wrapper });
+    fireEvent.click(screen.getByText("initialize"));
+    await waitFor(() => expect(screen.getByTestId("user")).toHaveTextContent("users/1"));
+
+    let release!: () => void;
+    removeAllQueryCachesMock.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+
+    fireEvent.click(screen.getByText("logout"));
+    await waitFor(() => expect(removeAllQueryCachesMock).toHaveBeenCalledWith(fakeOfflineStore));
+    // Still signed in: logout is suspended on the destruction, not past it.
+    expect(screen.getByTestId("user")).toHaveTextContent("users/1");
+
+    release();
+    await waitFor(() => expect(screen.getByTestId("user")).toHaveTextContent("none"));
   });
 });

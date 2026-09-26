@@ -249,10 +249,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       clearAccessToken();
       clearOfflineSession();
+      // Awaited, not fire-and-forget: handleSignOut navigates with
+      // window.location.replace as soon as logout() resolves, and unloading the
+      // document aborts pending IndexedDB transactions and Cache Storage calls.
+      // This destruction is the containment control for cached private
+      // attachments and query data, so it has to finish first.
       if (offlineStore) {
-        void removeAllQueryCaches(offlineStore);
+        await removeAllQueryCaches(offlineStore);
       }
-      void clearAttachmentCache();
+      await clearAttachmentCache();
       setState(UNAUTHENTICATED_STATE);
       queryClient.clear();
     }
