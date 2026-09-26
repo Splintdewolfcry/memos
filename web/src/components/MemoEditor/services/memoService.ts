@@ -1,8 +1,10 @@
 import { create } from "@bufbuild/protobuf";
 import { FieldMaskSchema, timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { isEqual } from "lodash-es";
 import { getEditorReferenceRelations } from "@/components/MemoMetadata/Relation/relationHelpers";
 import { memoServiceClient } from "@/connect";
+import { isWriteBlocked } from "@/lib/offline-state";
 import type { Attachment } from "@/types/proto/api/v1/attachment_service_pb";
 import { AttachmentSchema } from "@/types/proto/api/v1/attachment_service_pb";
 import type { Memo } from "@/types/proto/api/v1/memo_service_pb";
@@ -85,6 +87,12 @@ export const memoService = {
       space?: string;
     },
   ): Promise<{ memoName: string; hasChanges: boolean }> {
+    // Refuse before any network work: an offline composer must not upload
+    // attachments first and then fail with a raw network error toast.
+    if (isWriteBlocked()) {
+      throw new ConnectError("You are offline. Reconnect to save this change.", Code.Unavailable);
+    }
+
     // 1. Upload local files first
     const newAttachments = await uploadService.uploadFiles(state.localFiles);
     const allAttachments = [...state.metadata.attachments, ...newAttachments];
