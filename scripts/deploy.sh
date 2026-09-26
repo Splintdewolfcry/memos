@@ -23,6 +23,9 @@ DATA_DIR="${DATA_DIR:-$HOME/memos_data_backup/data}"
 COMPOSE_FILE="compose.deploy.yaml"
 NODE_IMAGE="node:24-alpine"
 PNPM_STORE_VOLUME="memos-deploy-pnpm-store"
+# The container gets its own node_modules: the host's copy (if any) was
+# linked against the host libc, while alpine needs the musl native bindings.
+NODE_MODULES_VOLUME="memos-deploy-node-modules"
 
 die() {
     echo "deploy: $*" >&2
@@ -40,6 +43,7 @@ docker run --rm \
     --env COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     --volume "$PWD":/src \
     --volume "$PNPM_STORE_VOLUME":/root/.local/share/pnpm/store \
+    --volume "$NODE_MODULES_VOLUME":/src/web/node_modules \
     --workdir /src/web \
     "$NODE_IMAGE" sh -c "corepack enable pnpm && pnpm install --frozen-lockfile && pnpm release"
 
