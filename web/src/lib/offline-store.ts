@@ -70,3 +70,27 @@ export function createMemoryStore(): OfflineStore {
     clear: async () => void values.clear(),
   };
 }
+
+export interface OfflineStorageUsage {
+  usage: number;
+  quota: number;
+  persisted: boolean;
+}
+
+/**
+ * Storage held for this origin, or undefined when the API is absent. With no cap
+ * on memo count, eviction would otherwise be invisible — this is where the user
+ * finds out the cache is large or that persistence was refused.
+ */
+export async function readOfflineStorageUsage(): Promise<OfflineStorageUsage | undefined> {
+  if (typeof navigator === "undefined" || !navigator.storage?.estimate) return undefined;
+  try {
+    const [estimate, persisted] = await Promise.all([
+      navigator.storage.estimate(),
+      navigator.storage.persisted ? navigator.storage.persisted() : Promise.resolve(false),
+    ]);
+    return { usage: estimate.usage ?? 0, quota: estimate.quota ?? 0, persisted };
+  } catch {
+    return undefined;
+  }
+}

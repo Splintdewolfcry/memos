@@ -3,11 +3,12 @@ import { RefreshCwIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { instanceKeys, useInstanceStats } from "@/hooks/useInstanceQueries";
 import { useTranslate } from "@/utils/i18n";
+import { OfflineStorageStats } from "./OfflineStorageStats";
 import SettingGroup from "./SettingGroup";
 import { SettingList, SettingPanel, StatRow } from "./SettingList";
 import SettingSection from "./SettingSection";
 
-const formatBytes = (bytes: number | bigint): string => {
+export const formatBytes = (bytes: number | bigint): string => {
   const n = typeof bytes === "bigint" ? Number(bytes) : bytes;
   if (n < 0) return "—";
   if (n === 0) return "0 B";
@@ -87,6 +88,9 @@ const ResourceStatsSection = () => {
           </SettingGroup>
         </>
       ) : null}
+
+      {/* Browser-local, so it stays visible when the instance stats request fails. */}
+      <OfflineStorageStats />
     </SettingSection>
   );
 };
