@@ -32,6 +32,10 @@ export function persistedCacheKey(userName: string | undefined): string {
 }
 
 export async function saveQueryCache(client: QueryClient, store: OfflineStore, userName: string | undefined): Promise<void> {
+  // An entry with no owner would land on the shared `:anonymous` key, which the
+  // next account to sign in on this browser would restore. Refuse to write one.
+  if (userName === undefined) return;
+  const key = persistedCacheKey(userName);
   try {
     const state = dehydrate(client, {
       // Persist queries that succeeded or still hold data after a failed refetch.
@@ -48,7 +52,7 @@ export async function saveQueryCache(client: QueryClient, store: OfflineStore, u
       return;
     }
     const payload: PersistedCache = { savedAt: Date.now(), state };
-    await store.set(persistedCacheKey(userName), payload);
+    await store.set(key, payload);
   } catch (error) {
     // Quota exceeded, private browsing, or a value structured clone rejects.
     // Offline caching is an enhancement; it must never break the live app.
@@ -60,6 +64,9 @@ export async function saveQueryCache(client: QueryClient, store: OfflineStore, u
  * an online client refetches immediately and the cache only ever serves as a
  * fallback. */
 export async function restoreQueryCache(client: QueryClient, store: OfflineStore, userName: string | undefined): Promise<boolean> {
+  // Symmetrical with saveQueryCache: the `:anonymous` entry must never be read
+  // back into a session whose owner is unknown.
+  if (userName === undefined) return false;
   try {
     const persisted = await store.get<PersistedCache>(persistedCacheKey(userName));
     if (!persisted) return false;

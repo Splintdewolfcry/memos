@@ -13,7 +13,7 @@ import {
   saveOfflineSession,
 } from "@/lib/offline-session";
 import { offlineStore } from "@/lib/offline-store-instance";
-import { removeAllQueryCaches, removeQueryCache } from "@/lib/query-persistence";
+import { removeAllQueryCaches } from "@/lib/query-persistence";
 import { clearAttachmentCache } from "@/lib/service-worker-registration";
 import type {
   User,
@@ -166,11 +166,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Drop a stale offline entry from a different user so the restore path
-      // cannot resurrect another account's identity or tag settings. Remove the
-      // foreign query cache first (order matters — the name is needed for the key).
+      // cannot resurrect another account's identity or tag settings. A boot
+      // restore may also have hydrated the previous account's memos into the
+      // shared query client, and an earlier branch in this function may already
+      // have cleared the stored name — so drop the whole client and remove every
+      // persisted cache instead of the one keyed by a name that may be gone.
       if (getStoredOfflineUserName() !== currentUser.name) {
+        queryClient.clear();
         if (offlineStore) {
-          void removeQueryCache(offlineStore, getStoredOfflineUserName());
+          void removeAllQueryCaches(offlineStore);
         }
         clearOfflineSession();
       }

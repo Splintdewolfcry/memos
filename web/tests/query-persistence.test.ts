@@ -48,6 +48,21 @@ describe("per-user scoping", () => {
     expect(reader.getQueryData(["memos", "detail", "memos/1"])).toBeUndefined();
   });
 
+  it("refuses to read or write a cache with no owner", async () => {
+    // An ownerless entry would land on the shared `:anonymous` key, which the
+    // next account to sign in on this browser would restore.
+    const writer = new QueryClient();
+    writer.setQueryData(["memos", "detail", "memos/1"], { name: "memos/1", content: "alice secret" });
+
+    await saveQueryCache(writer, store, undefined);
+
+    expect(await store.keys()).toEqual([]);
+
+    // Seeding the sentinel by hand must still not restore into an unknown session.
+    await store.set(persistedCacheKey(undefined), { savedAt: Date.now(), state: { mutations: [], queries: [] } });
+    expect(await restoreQueryCache(new QueryClient(), store, undefined)).toBe(false);
+  });
+
   it("removes only the named user's cache", async () => {
     const client = new QueryClient();
     client.setQueryData(["memos", "detail", "memos/1"], { name: "memos/1" });

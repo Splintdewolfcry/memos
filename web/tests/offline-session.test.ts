@@ -1,6 +1,6 @@
 import { create } from "@bufbuild/protobuf";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { clearOfflineSession, loadOfflineSession, saveOfflineSession } from "@/lib/offline-session";
+import { clearOfflineSession, getStoredOfflineUserName, loadOfflineSession, saveOfflineSession } from "@/lib/offline-session";
 import { UserSchema, UserSetting_TagsSettingSchema } from "@/types/proto/api/v1/user_service_pb";
 
 const store = new Map<string, string>();
@@ -44,5 +44,23 @@ describe("offline session", () => {
     store.set("memos_offline_session", "{not json");
 
     expect(loadOfflineSession("users/1")).toBeUndefined();
+  });
+
+  it("reports the stored user name until the session is cleared", () => {
+    // The name decides which persisted cache an offline boot restores into, and
+    // which one a foreign sign-in has to drop.
+    expect(getStoredOfflineUserName()).toBeUndefined();
+
+    saveOfflineSession(alice(), {});
+    expect(getStoredOfflineUserName()).toBe("users/1");
+
+    clearOfflineSession();
+    expect(getStoredOfflineUserName()).toBeUndefined();
+  });
+
+  it("reports no user name for a corrupt payload", () => {
+    store.set("memos_offline_session", "{not json");
+
+    expect(getStoredOfflineUserName()).toBeUndefined();
   });
 });

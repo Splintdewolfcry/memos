@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { saveOfflineSession } from "@/lib/offline-session";
+import { createMemoryStore } from "@/lib/offline-store";
 import { UserSchema } from "@/types/proto/api/v1/user_service_pb";
 
 const authState = vi.hoisted(() => ({ hasToken: false, hasStored: false }));
@@ -12,7 +13,6 @@ const clients = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   listUserSettings: vi.fn(),
 }));
-const removeQueryCacheMock = vi.hoisted(() => vi.fn());
 const removeAllQueryCachesMock = vi.hoisted(() => vi.fn());
 const fakeOfflineStore = vi.hoisted(() => ({ get: vi.fn(), set: vi.fn(), remove: vi.fn(), keys: vi.fn(), clear: vi.fn() }));
 
@@ -34,7 +34,6 @@ vi.mock("@/connect", () => ({
 }));
 
 vi.mock("@/lib/query-persistence", () => ({
-  removeQueryCache: (...args: unknown[]) => removeQueryCacheMock(...args),
   removeAllQueryCaches: (...args: unknown[]) => removeAllQueryCachesMock(...args),
 }));
 
@@ -77,6 +76,16 @@ const wrapper = ({ children }: { children: ReactNode }) => (
     <AuthProvider>{children}</AuthProvider>
   </QueryClientProvider>
 );
+
+/** Same tree, but over a client the test owns so it can inspect what survived. */
+const wrapperWith = (client: QueryClient) => {
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>
+      <AuthProvider>{children}</AuthProvider>
+    </QueryClientProvider>
+  );
+  return Wrapper;
+};
 
 describe("AuthProvider initialization", () => {
   beforeEach(() => {
@@ -216,12 +225,13 @@ describe("offline initialization", () => {
     expect(loadOfflineSession("users/A")).toBeUndefined();
   });
 
-  it("removes the foreign query cache when a different user signs in", async () => {
+  it("removes every persisted query cache when a different user signs in", async () => {
     // User A's offline session and query cache exist. User B signs in;
-    // getCurrentUser succeeds. Both A's offline session AND A's query cache
-    // must be removed so A's memos cannot transiently render under B's account.
+    // getCurrentUser succeeds. A's session AND every persisted cache must go:
+    // an earlier branch may already have cleared the stored name, so removing
+    // only the entry keyed by that name can miss A's data entirely.
     saveOfflineSession(create(UserSchema, { name: "users/A", username: "alice" }), {});
-    removeQueryCacheMock.mockClear();
+    removeAllQueryCachesMock.mockClear();
     clients.getCurrentUser.mockResolvedValue({ user: create(UserSchema, { name: "users/B", username: "bob" }) });
     clients.listUserSettings.mockResolvedValue({ settings: [] });
 
@@ -229,8 +239,31 @@ describe("offline initialization", () => {
     fireEvent.click(screen.getByText("initialize"));
 
     await waitFor(() => expect(screen.getByTestId("user")).toHaveTextContent("users/B"));
-    // removeQueryCache was called with the foreign user's name (users/A)
-    expect(removeQueryCacheMock).toHaveBeenCalledWith(fakeOfflineStore, "users/A");
+    expect(removeAllQueryCachesMock).toHaveBeenCalledWith(fakeOfflineStore);
+  });
+
+  it("clears a previous account's hydrated memos before the next account renders", async () => {
+    // The reported leak: a boot restore hydrated A's memos into the shared query
+    // client, A's token turned out to be dead, and B signed in through
+    // react-router — no page reload, so the client survives. B's memo list and
+    // detail keys carry no identity, so A's content would render under B.
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(["memos", "detail", "memos/1"], { name: "memos/1", content: "alice secret" });
+    clients.getCurrentUser.mockResolvedValue({ user: create(UserSchema, { name: "users/B", username: "bob" }) });
+    clients.listUserSettings.mockResolvedValue({ settings: [] });
+
+    render(<Probe />, { wrapper: wrapperWith(client) });
+    fireEvent.click(screen.getByText("initialize"));
+
+    await waitFor(() => expect(screen.getByTestId("user")).toHaveTextContent("users/B"));
+    expect(client.getQueryData(["memos", "detail", "memos/1"])).toBeUndefined();
+
+    // The next persistence tick must not write A's content under B's key.
+    const { persistedCacheKey, saveQueryCache } =
+      await vi.importActual<typeof import("@/lib/query-persistence")>("@/lib/query-persistence");
+    const persisted = createMemoryStore();
+    await saveQueryCache(client, persisted, "users/B");
+    expect(JSON.stringify(await persisted.get(persistedCacheKey("users/B")))).not.toContain("alice secret");
   });
 
   it("drops the persisted session on logout", async () => {
