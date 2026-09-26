@@ -8,7 +8,7 @@
 # Optional env overrides:
 #   IMAGE_TAG     image to build and run       (default: memos-custom:latest)
 #   HOST_PORT     host port mapped to 5230     (default: 5230)
-#   DATA_DIR      host dir for /var/opt/memos  (default: ~/.memos)
+#   DATA_DIR      host dir for /var/opt/memos  (default: ~/memos_data_backup/data)
 #
 # The compose file is regenerated on every run into compose.deploy.yaml
 # (gitignored), so env overrides always take effect.
@@ -19,7 +19,7 @@ cd "$(dirname "$0")/.."
 
 IMAGE_TAG="${IMAGE_TAG:-memos-custom:latest}"
 HOST_PORT="${HOST_PORT:-5230}"
-DATA_DIR="${DATA_DIR:-$HOME/.memos}"
+DATA_DIR="${DATA_DIR:-$HOME/memos_data_backup/data}"
 COMPOSE_FILE="compose.deploy.yaml"
 NODE_IMAGE="node:24-alpine"
 PNPM_STORE_VOLUME="memos-deploy-pnpm-store"
