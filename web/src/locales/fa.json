@@ -850,6 +850,15 @@
         "title": "حافظه محلی",
         "size": "اندازه دایرکتوری داده"
       },
+      "offline": {
+        "title": "Offline cache",
+        "description": "Data this browser holds so memos stay reachable offline.",
+        "size": "Size",
+        "persistent-storage": "Persistent storage",
+        "persisted-yes": "yes",
+        "persisted-no": "no",
+        "persisted-warning": "Not granted — the browser may evict this cache under storage pressure."
+      },
       "unknown": "نامشخص",
       "last-updated": "آخرین به‌روزرسانی {{ago}}",
       "refresh": "به‌روزرسانی",

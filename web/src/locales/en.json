@@ -970,6 +970,15 @@
         "title": "Local Storage",
         "size": "Data directory size"
       },
+      "offline": {
+        "title": "Offline cache",
+        "description": "Data this browser holds so memos stay reachable offline.",
+        "size": "Size",
+        "persistent-storage": "Persistent storage",
+        "persisted-yes": "yes",
+        "persisted-no": "no",
+        "persisted-warning": "Not granted — the browser may evict this cache under storage pressure."
+      },
       "unknown": "Unknown",
       "last-updated": "Last updated {{ago}}",
       "refresh": "Refresh",

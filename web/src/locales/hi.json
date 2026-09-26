@@ -850,6 +850,15 @@
         "title": "लोकल स्टोरेज",
         "size": "डेटा डायरेक्टरी साइज़"
       },
+      "offline": {
+        "title": "Offline cache",
+        "description": "Data this browser holds so memos stay reachable offline.",
+        "size": "Size",
+        "persistent-storage": "Persistent storage",
+        "persisted-yes": "yes",
+        "persisted-no": "no",
+        "persisted-warning": "Not granted — the browser may evict this cache under storage pressure."
+      },
       "unknown": "पता नहीं",
       "last-updated": "लास्ट अपडेटेड {{ago}}",
       "refresh": "रिफ्रेश",

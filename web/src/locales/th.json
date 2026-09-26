@@ -850,6 +850,15 @@
         "title": "พื้นที่จัดเก็บข้อมูลภายในเครื่อง",
         "size": "ขนาดไดเร็กทอรีข้อมูล"
       },
+      "offline": {
+        "title": "Offline cache",
+        "description": "Data this browser holds so memos stay reachable offline.",
+        "size": "Size",
+        "persistent-storage": "Persistent storage",
+        "persisted-yes": "yes",
+        "persisted-no": "no",
+        "persisted-warning": "Not granted — the browser may evict this cache under storage pressure."
+      },
       "unknown": "ไม่ทราบ",
       "last-updated": "อัปเดตล่าสุด {{ago}}",
       "refresh": "รีเฟรช",

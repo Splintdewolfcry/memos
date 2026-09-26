@@ -760,6 +760,15 @@
         "size": "数据目录大小",
         "title": "本地存储"
       },
+      "offline": {
+        "title": "Offline cache",
+        "description": "Data this browser holds so memos stay reachable offline.",
+        "size": "Size",
+        "persistent-storage": "Persistent storage",
+        "persisted-yes": "yes",
+        "persisted-no": "no",
+        "persisted-warning": "Not granted — the browser may evict this cache under storage pressure."
+      },
       "refresh": "刷新",
       "title": "资源统计",
       "unknown": "未知"

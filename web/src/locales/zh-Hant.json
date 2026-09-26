@@ -893,6 +893,15 @@
         "title": "本機儲存",
         "size": "資料目錄大小"
       },
+      "offline": {
+        "title": "Offline cache",
+        "description": "Data this browser holds so memos stay reachable offline.",
+        "size": "Size",
+        "persistent-storage": "Persistent storage",
+        "persisted-yes": "yes",
+        "persisted-no": "no",
+        "persisted-warning": "Not granted — the browser may evict this cache under storage pressure."
+      },
       "unknown": "未知",
       "last-updated": "最後更新 {{ago}}",
       "refresh": "重新整理",

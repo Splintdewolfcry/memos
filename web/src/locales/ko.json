@@ -850,6 +850,15 @@
         "title": "로컬 저장소",
         "size": "데이터 디렉터리 크기"
       },
+      "offline": {
+        "title": "Offline cache",
+        "description": "Data this browser holds so memos stay reachable offline.",
+        "size": "Size",
+        "persistent-storage": "Persistent storage",
+        "persisted-yes": "yes",
+        "persisted-no": "no",
+        "persisted-warning": "Not granted — the browser may evict this cache under storage pressure."
+      },
       "unknown": "알 수 없음",
       "last-updated": "마지막 업데이트 {{ago}}",
       "refresh": "새로 고침",

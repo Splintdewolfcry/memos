@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { type OfflineStorageUsage, readOfflineStorageUsage } from "@/lib/offline-store";
+import { useTranslate } from "@/utils/i18n";
 import { formatBytes } from "./ResourceStatsSection";
 import SettingGroup from "./SettingGroup";
 import { SettingList, SettingListItem, StatValue } from "./SettingList";
@@ -11,6 +12,7 @@ import { SettingList, SettingListItem, StatValue } from "./SettingList";
  * Storage Manager API is absent.
  */
 export const OfflineStorageStats = () => {
+  const t = useTranslate();
   const [usage, setUsage] = useState<OfflineStorageUsage | undefined>(undefined);
 
   useEffect(() => {
@@ -30,22 +32,27 @@ export const OfflineStorageStats = () => {
   }
 
   const size = usage.quota > 0 ? `${formatBytes(usage.usage)} of ${formatBytes(usage.quota)}` : formatBytes(usage.usage);
+  const persisted = usage.persisted ? t("setting.resource-stats.offline.persisted-yes") : t("setting.resource-stats.offline.persisted-no");
 
   return (
-    <SettingGroup title="Offline cache" description="Data this browser holds so memos stay reachable offline." showSeparator>
+    <SettingGroup
+      title={t("setting.resource-stats.offline.title")}
+      description={t("setting.resource-stats.offline.description")}
+      showSeparator
+    >
       <SettingList>
-        <SettingListItem label="Size" controlClassName="w-full justify-end sm:w-auto">
+        <SettingListItem label={t("setting.resource-stats.offline.size")} controlClassName="w-full justify-end sm:w-auto">
           <div data-testid="offline-usage" className="min-w-0">
             <StatValue value={size} />
           </div>
         </SettingListItem>
         <SettingListItem
-          label="Persistent storage"
-          description={usage.persisted ? undefined : "Not granted — the browser may evict this cache under storage pressure."}
+          label={t("setting.resource-stats.offline.persistent-storage")}
+          description={usage.persisted ? undefined : t("setting.resource-stats.offline.persisted-warning")}
           controlClassName="w-full justify-end sm:w-auto"
         >
           <div data-testid="offline-persisted" className="min-w-0">
-            <StatValue value={usage.persisted ? "yes" : "no"} />
+            <StatValue value={persisted} />
           </div>
         </SettingListItem>
       </SettingList>
