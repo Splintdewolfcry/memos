@@ -1,17 +1,19 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useSSEConnectionStatus } from "@/hooks/useLiveMemoRefresh";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { cn } from "@/lib/utils";
 import { useTranslate } from "@/utils/i18n";
 
 const OfflineBanner = () => {
   const t = useTranslate();
   const { isOffline, currentUser } = useAuth();
+  const online = useOnlineStatus();
   const sseStatus = useSSEConnectionStatus();
 
   // "disconnected" is the SSE store's idle default: signed-out visitors and tabs
   // waiting out a retry backoff report it while online. Count it only for an
   // authenticated session that has also lost connectivity.
-  const shouldShow = isOffline || (!!currentUser && sseStatus === "disconnected" && !navigator.onLine);
+  const shouldShow = isOffline || (!!currentUser && sseStatus === "disconnected" && !online);
 
   if (!shouldShow) {
     return null;

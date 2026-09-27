@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { SSEConnectionStatus } from "@/hooks/useLiveMemoRefresh";
+import type { SSEConnectionStatus } from "@/lib/sse-status";
 
 const mocks = vi.hoisted(() => ({
   isOffline: false,

@@ -1021,6 +1021,10 @@
     "spaces": "المساحات",
     "switch": "تبديل المساحة"
   },
+  "connectionStatus": {
+    "online": "Online",
+    "cached": "Cached copy"
+  },
   "offlineBanner": {
     "title": "You're offline",
     "description": "Changes can't be saved until you reconnect."

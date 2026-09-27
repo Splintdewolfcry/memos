@@ -6,6 +6,7 @@ import { type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { saveOfflineSession } from "@/lib/offline-session";
 import { createMemoryStore } from "@/lib/offline-store";
+import { setSSEStatus } from "@/lib/sse-status";
 import { UserSchema } from "@/types/proto/api/v1/user_service_pb";
 
 const authState = vi.hoisted(() => ({ hasToken: false, hasStored: false }));
@@ -60,6 +61,12 @@ const Probe = () => {
       <span data-testid="initialized">{isInitialized ? "yes" : "no"}</span>
       <span data-testid="user-settings-initialized">{isUserSettingsInitialized ? "yes" : "no"}</span>
       <span data-testid="offline">{isOffline ? "yes" : "no"}</span>
+      <button type="button" onClick={() => setSSEStatus("connected")}>
+        sse-connected
+      </button>
+      <button type="button" onClick={() => setSSEStatus("disconnected")}>
+        sse-disconnected
+      </button>
       <span data-testid="user">{currentUser?.name ?? "none"}</span>
       <button type="button" onClick={() => void initialize()}>
         initialize
@@ -278,6 +285,22 @@ describe("offline initialization", () => {
 
     const { loadOfflineSession } = await import("@/lib/offline-session");
     expect(loadOfflineSession("users/1")).toBeUndefined();
+  });
+
+  it("clears a latched offline restore once the SSE connection proves the server reachable", async () => {
+    // Reported staleness: a boot-time offline restore latched isOffline on, and
+    // the badge kept claiming a cached copy after the network returned. Only a
+    // reload cleared it. The SSE connection succeeding is the mid-session proof
+    // that the live session is authoritative again.
+    saveOfflineSession(create(UserSchema, { name: "users/1", username: "alice" }), {});
+    clients.getCurrentUser.mockRejectedValue(unavailable());
+
+    render(<Probe />, { wrapper });
+    fireEvent.click(screen.getByText("initialize"));
+    await waitFor(() => expect(screen.getByTestId("offline")).toHaveTextContent("yes"));
+
+    fireEvent.click(screen.getByText("sse-connected"));
+    expect(screen.getByTestId("offline")).toHaveTextContent("no");
   });
 
   it("awaits persisted-cache destruction before finishing logout", async () => {

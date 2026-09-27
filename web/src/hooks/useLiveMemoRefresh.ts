@@ -6,6 +6,7 @@ import { attachmentKeys } from "@/hooks/useAttachmentQueries";
 import { memoKeys } from "@/hooks/useMemoQueries";
 import { spaceKeys } from "@/hooks/useSpaceQueries";
 import { userKeys } from "@/hooks/useUserQueries";
+import { getSSEStatus, type SSEConnectionStatus, setSSEStatus, subscribeSSEStatus } from "@/lib/sse-status";
 
 /**
  * Reconnection parameters for SSE connection.
@@ -21,33 +22,6 @@ const SSE_SYNC_CHANNEL_NAME = "memos-sse-sync";
 
 const MEMO_CHANGED_SSE_EVENT_TYPE = "memo.changed" as const;
 const SPACE_CHANGED_SSE_EVENT_TYPE = "space.changed" as const;
-
-// ---------------------------------------------------------------------------
-// Shared connection status store (singleton)
-// ---------------------------------------------------------------------------
-
-export type SSEConnectionStatus = "connected" | "disconnected" | "connecting";
-
-type Listener = () => void;
-
-let _status: SSEConnectionStatus = "disconnected";
-const _listeners = new Set<Listener>();
-
-function getSSEStatus(): SSEConnectionStatus {
-  return _status;
-}
-
-function setSSEStatus(s: SSEConnectionStatus) {
-  if (_status !== s) {
-    _status = s;
-    _listeners.forEach((l) => l());
-  }
-}
-
-function subscribeSSEStatus(listener: Listener): () => void {
-  _listeners.add(listener);
-  return () => _listeners.delete(listener);
-}
 
 /**
  * React hook that returns the current SSE connection status.

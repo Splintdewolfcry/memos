@@ -9,6 +9,7 @@ import AppSidebar, {
   SidebarResizeHandle,
   useSidebarWidth,
 } from "@/components/AppSidebar";
+import ConnectionStatusBadge from "@/components/ConnectionStatusBadge";
 import OfflineBanner from "@/components/OfflineBanner";
 import { AppSidebarProvider } from "@/contexts/AppSidebarContext";
 import { GlobalMemoEditorProvider } from "@/contexts/GlobalMemoEditorContext";
@@ -106,6 +107,7 @@ const RootLayoutContent = () => {
         <OfflineBanner />
         <Outlet />
       </main>
+      <ConnectionStatusBadge className="fixed end-3 top-3 z-30 hidden md:flex" />
       <QuickFindDialog />
     </div>
   );

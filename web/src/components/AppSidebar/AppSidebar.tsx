@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
 import { Link, matchPath, useLocation, useNavigate } from "react-router-dom";
+import ConnectionStatusBadge from "@/components/ConnectionStatusBadge";
 import { MAP_MEMO_FILTER } from "@/components/MapView/useMapMemos";
 import { MemoDetailSidebar } from "@/components/MemoDetailSidebar";
 import { DEFAULT_SETTING_SECTION, SETTINGS_SECTIONS } from "@/components/Settings/settingSections";
@@ -629,6 +630,7 @@ export const MobileAppHeader = () => {
         <MenuIcon className="size-[18px]" />
       </Button>
       <SidebarBrand className="max-w-[12rem]" size="md" />
+      <ConnectionStatusBadge className="ms-auto" />
     </header>
   );
 };

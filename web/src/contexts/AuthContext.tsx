@@ -1,6 +1,6 @@
 import { Code } from "@connectrpc/connect";
 import { useQueryClient } from "@tanstack/react-query";
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { clearAccessToken, getAccessToken, hasStoredToken } from "@/auth-state";
 import { authServiceClient, refreshAccessToken, userServiceClient } from "@/connect";
 import { userKeys } from "@/hooks/useUserQueries";
@@ -15,6 +15,7 @@ import {
 import { offlineStore } from "@/lib/offline-store-instance";
 import { removeAllQueryCaches } from "@/lib/query-persistence";
 import { clearAttachmentCache } from "@/lib/service-worker-registration";
+import { getSSEStatus, subscribeSSEStatus } from "@/lib/sse-status";
 import type {
   User,
   UserSetting_GeneralSetting,
@@ -120,6 +121,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!storedUserName) return undefined;
     return loadOfflineSession(storedUserName);
   }, []);
+
+  /**
+   * A boot-time offline restore leaves isOffline latched on even after the
+   * network returns, because initialize() never re-runs mid-session. The SSE
+   * connection succeeding proves the server is reachable and the live session
+   * is authoritative again, so drop the cached-copy flag then. Followers in
+   * multi-tab setups receive the same status over the sync channel.
+   */
+  useEffect(
+    () =>
+      subscribeSSEStatus(() => {
+        // Listeners re-read the snapshot themselves; the store passes no args.
+        if (getSSEStatus() === "connected") {
+          setState((prev) => (prev.isOffline ? { ...prev, isOffline: false } : prev));
+        }
+      }),
+    [],
+  );
 
   const initialize = useCallback(async () => {
     // `initialize` also runs after sign-in, when the previous unauthenticated
