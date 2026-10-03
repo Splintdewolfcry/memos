@@ -158,6 +158,7 @@
       "uploading-images": "A carregar imagens {{completed}}/{{total}}"
     },
     "no-changes-detected": "Nenhuma alteração detetada",
+    "queued-offline": "Guardado neste dispositivo. Será enviado quando voltar a ligar-se.",
     "save": "Guardar",
     "audio-recorder": {
       "attachment-label": "Gravação de áudio",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "As alterações guardadas ficam neste dispositivo e serão sincronizadas quando voltar a ligar-se.",
+    "pending_one": "{{count}} alteração aguarda sincronização.",
+    "pending_other": "{{count}} alterações aguardam sincronização."
   }
 }

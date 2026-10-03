@@ -202,6 +202,7 @@
     },
     "new-memo": "Yeni not",
     "no-changes-detected": "Değişiklik yok",
+    "queued-offline": "Bu cihaza kaydedildi. Bağlantı geri geldiğinde yüklenecek.",
     "save": "Kaydet",
     "saved": "Kaydedildi",
     "validation": {
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "Kaydettiğin değişiklikler bu cihazda tutulur ve bağlantı geri geldiğinde eşitlenir.",
+    "pending_one": "{{count}} değişiklik eşitlenmeyi bekliyor.",
+    "pending_other": "{{count}} değişiklik eşitlenmeyi bekliyor."
   }
 }

@@ -196,6 +196,7 @@
       "uploading-images": "Uploader billeder {{completed}}/{{total}}"
     },
     "no-changes-detected": "Ingen ændringer registreret",
+    "queued-offline": "Gemt på denne enhed. Uploades, når du genopretter forbindelsen.",
     "save": "Spare",
     "audio-recorder": {
       "attachment-label": "Lydoptagelse",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "Gemte ændringer forbliver på denne enhed og synkroniseres, når du genopretter forbindelsen.",
+    "pending_one": "{{count}} ændring venter på synkronisering.",
+    "pending_other": "{{count}} ændringer venter på synkronisering."
   }
 }

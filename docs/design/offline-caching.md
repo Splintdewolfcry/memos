@@ -83,7 +83,7 @@ stale API response.
 
 - Offline write queue, deferred sync, and conflict resolution. Multiple devices edit the same
   memos, so this needs real conflict handling rather than last-write-wins. Deferred to a
-  separate design.
+  separate design — since implemented, see [Offline writes](#offline-writes).
 - Background Sync API and push. Poor Safari support, and unnecessary without writes.
 
 ## Existing behaviour to preserve
@@ -257,6 +257,47 @@ Mutations must fail loudly rather than silently revert. `useUpdateMemo` in `useM
 applies an optimistic patch in `onMutate` and rolls back in `onError`, so offline an edit
 visibly appears and then vanishes. While offline, mutations are blocked up front with an
 explicit message. This is a stopgap until the deferred write queue lands.
+
+### Offline writes
+
+Editor saves made with no connectivity are queued locally instead of refused, and flushed to
+the server when connectivity returns. The queue lives in `web/src/lib/offline-writes.ts`, in
+the same IndexedDB database as the query cache and keyed per user like it.
+
+- **Creating.** A save through `MemoEditor/services/memoService.ts` with no memo name queues a
+  create. The composer's payload is stored untouched; the user immediately sees a placeholder
+  memo named `offline/{uuid}` in every cached list and as a detail, so the save is visibly
+  there, survives reloads, and reads like any other memo.
+- **Editing.** A save with a memo name is diffed against the memo as this device last saw it
+  (`buildUpdateMask`) and queued as that patch plus the observed baseline. The cached copy is
+  patched in place, exactly like the optimistic patch of an online update. A memo that is not
+  cached on the device cannot be edited offline — there is no baseline to diff or conflict
+  against. A second offline edit of the same memo merges into the first entry while keeping
+  the original baseline, so one flush applies every change.
+- **Comments.** A comment save is queued as a create against its parent memo; the placeholder
+  carries the `parent` field so it renders in comment lists too.
+- **Attachments.** A draft with files still pending upload is refused: the bytes cannot be
+  queued, only uploaded. Already-uploaded attachments ride along in the payload as references.
+- **Syncing.** `useOfflineWriteSync` flushes on app open (leftovers from a previous offline
+  session), on the browser's `online` event, and when the SSE connection proves the server is
+  answering again — `navigator.onLine` can lie, so SSE is the trustworthy signal. Writes flush
+  in queue order, persisting progress after each entry, so a mid-flush disconnect cannot
+  replay a write that already reached the server.
+- **Conflicts keep both versions.** Before applying a queued edit, the flush refetches the
+  memo. If it changed on the server since the edit's baseline — or was deleted outright — the
+  server keeps its version and the offline edit is saved as a separate new memo, so no edit is
+  ever lost. Metadata-only edits (pin, archive) do not collide with concurrent content edits
+  and are applied as-is. A write the server definitively rejects (invalid payload, revoked
+  access) is dropped with a console error; keeping it would wedge the queue behind a failure
+  that will never clear. Network-class failures keep the entry queued for the next attempt.
+- **Scope.** The queue is per-user, and cleared on logout and account switch alongside the
+  query cache, so one account can never sync another's notes. Quick mutations outside the
+  editor (task checkboxes, pins, moves) are still blocked offline up front: their
+  optimistic-patch-and-rollback path in `useUpdateMemo` has no baseline to merge, and a
+  duplicate-memo conflict resolution is meaningless for a pin toggle.
+
+The `OfflineBanner` reports how many changes are waiting to sync while the connection is down,
+and `useOfflineWriteSync` keeps that count refreshed as writes are queued and flushed.
 
 ## Testing
 

@@ -254,6 +254,7 @@
     },
     "new-memo": "新增備忘錄",
     "no-changes-detected": "未發現變更",
+    "queued-offline": "已儲存到本裝置，重新連線後將自動上傳。",
     "save": "儲存",
     "validation": {
       "cannot-save": "無法儲存",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "儲存的變更會保留在本裝置上，並在重新連線後同步。",
+    "pending_one": "{{count}} 項變更正在等待同步。",
+    "pending_other": "{{count}} 項變更正在等待同步。"
   }
 }

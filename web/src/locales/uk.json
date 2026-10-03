@@ -158,6 +158,7 @@
       "uploading-images": "Завантаження зображень {{completed}}/{{total}}"
     },
     "no-changes-detected": "Змін не виявлено",
+    "queued-offline": "Збережено на цьому пристрої. Буде надіслано після відновлення з'єднання.",
     "save": "Зберегти",
     "audio-recorder": {
       "attachment-label": "Аудіозапис",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "Збережені зміни залишаються на цьому пристрої та синхронізуються після відновлення з'єднання.",
+    "pending_one": "{{count}} зміна очікує на синхронізацію.",
+    "pending_other": "{{count}} змін очікують на синхронізацію."
   }
 }

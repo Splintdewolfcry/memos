@@ -74,7 +74,7 @@ function discardUnavailableMemo(client: QueryClient, name: string) {
   }
 }
 
-type MemoPatch = Partial<Memo> & Pick<Memo, "name">;
+export type MemoPatch = Partial<Memo> & Pick<Memo, "name">;
 type MemoCollectionQueryData = ListMemosResponse | InfiniteData<ListMemosResponse>;
 
 function isMemoListResponse(data: unknown): data is ListMemosResponse {
@@ -163,8 +163,53 @@ export function findMemoInCollectionQueries(queryClient: QueryClient, name: stri
   return undefined;
 }
 
-function patchMemoInCollectionQueries(queryClient: QueryClient, update: MemoPatch) {
+export function patchMemoInCollectionQueries(queryClient: QueryClient, update: MemoPatch) {
   queryClient.setQueriesData<MemoCollectionQueryData>({ queryKey: memoKeys.all }, (data) => patchMemoListQueryData(data, update));
+}
+
+function prependMemoToListResponse(response: ListMemosResponse, memo: Memo): ListMemosResponse {
+  return { ...response, memos: [memo, ...response.memos] };
+}
+
+/**
+ * Prepends a memo to every cached memo list, so a locally queued memo is
+ * visible immediately while offline. Flushing later invalidates the lists,
+ * which replaces the placeholder with server data.
+ */
+export function prependMemoToCollectionQueries(queryClient: QueryClient, memo: Memo) {
+  queryClient.setQueriesData<MemoCollectionQueryData>({ queryKey: memoKeys.all }, (data) => {
+    if (data === undefined) return data;
+    if (isMemoListResponse(data)) return prependMemoToListResponse(data, memo);
+    if (isInfiniteMemoListData(data)) {
+      if (data.pages.length === 0) return data;
+      const [first, ...rest] = data.pages;
+      return { ...data, pages: [prependMemoToListResponse(first, memo), ...rest] };
+    }
+    return data;
+  });
+}
+
+function withoutMemo(response: ListMemosResponse, name: string): ListMemosResponse {
+  const memos = response.memos.filter((memo) => memo.name !== name);
+  return memos.length === response.memos.length ? response : { ...response, memos };
+}
+
+/** Drops a memo (an offline placeholder that has been synced) from every cached list. */
+export function removeMemoFromCollectionQueries(queryClient: QueryClient, name: string) {
+  queryClient.setQueriesData<MemoCollectionQueryData>({ queryKey: memoKeys.all }, (data) => {
+    if (data === undefined) return data;
+    if (isMemoListResponse(data)) return withoutMemo(data, name);
+    if (isInfiniteMemoListData(data)) {
+      let changed = false;
+      const pages = data.pages.map((page) => {
+        const next = withoutMemo(page, name);
+        if (next !== page) changed = true;
+        return next;
+      });
+      return changed ? { ...data, pages } : data;
+    }
+    return data;
+  });
 }
 
 export function useMemos(request: Partial<ListMemosRequest> = {}) {

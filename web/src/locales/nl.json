@@ -158,6 +158,7 @@
       "uploading-images": "Afbeeldingen uploaden {{completed}}/{{total}}"
     },
     "no-changes-detected": "Geen wijzigingen gedetecteerd",
+    "queued-offline": "Opgeslagen op dit apparaat. Wordt geüpload zodra je opnieuw verbonden bent.",
     "save": "Opslaan",
     "audio-recorder": {
       "attachment-label": "Audio-opname",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "Opgeslagen wijzigingen blijven op dit apparaat en worden gesynchroniseerd zodra je opnieuw verbonden bent.",
+    "pending_one": "{{count}} wijziging wacht op synchronisatie.",
+    "pending_other": "{{count}} wijzigingen wachten op synchronisatie."
   }
 }

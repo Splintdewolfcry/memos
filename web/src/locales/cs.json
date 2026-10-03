@@ -158,6 +158,7 @@
       "uploading-images": "Nahrávání obrázků {{completed}}/{{total}}"
     },
     "no-changes-detected": "Nebyly zjištěny žádné změny",
+    "queued-offline": "Uloženo na tomto zařízení. Nahraje se po obnovení připojení.",
     "save": "Uložit",
     "audio-recorder": {
       "attachment-label": "Záznam zvuku",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "Uložené změny zůstanou na tomto zařízení a po obnovení připojení se synchronizují.",
+    "pending_one": "{{count}} změna čeká na synchronizaci.",
+    "pending_other": "{{count}} změny čekají na synchronizaci."
   }
 }

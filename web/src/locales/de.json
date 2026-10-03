@@ -158,6 +158,7 @@
       "uploading-images": "Bilder werden hochgeladen {{completed}}/{{total}}"
     },
     "no-changes-detected": "Keine Änderungen erkannt",
+    "queued-offline": "Auf diesem Gerät gespeichert. Wird hochgeladen, sobald du wieder verbunden bist.",
     "save": "Speichern",
     "audio-recorder": {
       "attachment-label": "Audioaufnahme",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "Gespeicherte Änderungen bleiben auf diesem Gerät und werden synchronisiert, sobald du wieder verbunden bist.",
+    "pending_one": "{{count}} Änderung wartet auf die Synchronisierung.",
+    "pending_other": "{{count}} Änderungen warten auf die Synchronisierung."
   }
 }

@@ -146,6 +146,7 @@
     "exit-focus-mode": "Sair do Modo Foco",
     "focus-mode": "Modo Foco",
     "no-changes-detected": "Nenhuma alteração detectada",
+    "queued-offline": "Salvo neste dispositivo. Será enviado quando você reconectar.",
     "save": "Salvar",
     "insert-menu": {
       "add-location": "Adicionar local",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "As alterações salvas ficam neste dispositivo e serão sincronizadas quando você reconectar.",
+    "pending_one": "{{count}} alteração aguardando sincronização.",
+    "pending_other": "{{count}} alterações aguardando sincronização."
   }
 }

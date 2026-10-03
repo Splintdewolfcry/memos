@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { InstanceProvider, useInstance } from "@/contexts/InstanceContext";
 import { ViewProvider } from "@/contexts/ViewContext";
 import { useLiveMemoRefresh } from "@/hooks/useLiveMemoRefresh";
+import { useOfflineWriteSync } from "@/hooks/useOfflineWriteSync";
 import { useTokenRefreshOnFocus } from "@/hooks/useTokenRefreshOnFocus";
 import { queryClient } from "@/lib/query-client";
 import { restorePersistedQueries, scheduleWorkerRegistration, startQueryCachePersistence } from "@/lib/service-worker-registration";
@@ -49,6 +50,10 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
 
   // Live refresh: listen for memo changes via SSE and invalidate caches.
   useLiveMemoRefresh();
+
+  // Offline writes: queue saves made with no connectivity and flush them to
+  // the server whenever connectivity returns.
+  useOfflineWriteSync();
 
   // Write the cache back after identity settles and whenever it changes, so the
   // persisted copy is always scoped to the signed-in user.

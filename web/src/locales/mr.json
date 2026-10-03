@@ -146,6 +146,7 @@
     "exit-focus-mode": "फोकस मोड सोडा",
     "focus-mode": "फोकस मोड",
     "no-changes-detected": "कोणतेही बदल आढळले नाहीत",
+    "queued-offline": "Saved on this device. It will upload when you reconnect.",
     "save": "जतन",
     "insert-menu": {
       "add-location": "स्थान जोडा",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "Changes you save are kept on this device and will sync when you reconnect.",
+    "pending_one": "{{count}} change is waiting to sync.",
+    "pending_other": "{{count}} changes are waiting to sync."
   }
 }

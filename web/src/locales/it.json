@@ -158,6 +158,7 @@
       "image-upload-failed": "Impossibile caricare alcune immagini. Riprova o mantieni i file caricati come allegati."
     },
     "no-changes-detected": "Nessuna modifica rilevata",
+    "queued-offline": "Salvato su questo dispositivo. Verrà caricato alla riconnessione.",
     "save": "Salva",
     "audio-recorder": {
       "attachment-label": "Registrazione audio",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "Le modifiche salvate restano su questo dispositivo e verranno sincronizzate alla riconnessione.",
+    "pending_one": "{{count}} modifica in attesa di sincronizzazione.",
+    "pending_other": "{{count}} modifiche in attesa di sincronizzazione."
   }
 }

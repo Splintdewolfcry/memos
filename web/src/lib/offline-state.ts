@@ -17,9 +17,10 @@ export function setNavigatorOnline(online: boolean): void {
 /**
  * True when a mutation cannot possibly reach the server.
  *
- * useUpdateMemo applies an optimistic patch in onMutate and rolls it back in
- * onError, so an offline edit visibly appears and then vanishes. Blocking up
- * front turns that silent revert into an explicit refusal.
+ * Editor saves no longer refuse while offline — they queue in
+ * lib/offline-writes.ts and sync when connectivity returns — but quick
+ * mutations (pin toggles, task checkboxes, moves) still block up front, and
+ * the flush engine refuses to run while the browser reports no connection.
  */
 export function isWriteBlocked(): boolean {
   if (override !== undefined) return !override;

@@ -13,6 +13,7 @@ import {
   saveOfflineSession,
 } from "@/lib/offline-session";
 import { offlineStore } from "@/lib/offline-store-instance";
+import { removeAllOfflineWrites } from "@/lib/offline-writes";
 import { removeAllQueryCaches } from "@/lib/query-persistence";
 import { clearAttachmentCache } from "@/lib/service-worker-registration";
 import { getSSEStatus, subscribeSSEStatus } from "@/lib/sse-status";
@@ -194,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         queryClient.clear();
         if (offlineStore) {
           void removeAllQueryCaches(offlineStore);
+          void removeAllOfflineWrites(offlineStore);
         }
         clearOfflineSession();
       }
@@ -279,6 +281,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // attachments and query data, so it has to finish first.
       if (offlineStore) {
         await removeAllQueryCaches(offlineStore);
+        // Queued writes are unsynced content of the signing-out account; they
+        // must not outlive the session that authored them.
+        await removeAllOfflineWrites(offlineStore);
       }
       await clearAttachmentCache();
       setState(UNAUTHENTICATED_STATE);

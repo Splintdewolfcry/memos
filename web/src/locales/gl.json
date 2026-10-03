@@ -158,6 +158,7 @@
       "uploading-images": "Subindo imaxes {{completed}}/{{total}}"
     },
     "no-changes-detected": "Non se detectaron cambios",
+    "queued-offline": "Saved on this device. It will upload when you reconnect.",
     "save": "Gardar",
     "audio-recorder": {
       "attachment-label": "Gravación de audio",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "Changes you save are kept on this device and will sync when you reconnect.",
+    "pending_one": "{{count}} change is waiting to sync.",
+    "pending_other": "{{count}} changes are waiting to sync."
   }
 }

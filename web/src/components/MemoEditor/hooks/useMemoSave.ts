@@ -70,17 +70,27 @@ export function useMemoSave({
       // Prevent the autosave unmount flush from restoring the saved draft.
       discardDraft();
 
-      const invalidationPromises: Promise<unknown>[] = [
-        queryClient.invalidateQueries({ queryKey: memoKeys.lists() }),
-        queryClient.invalidateQueries({ queryKey: userKeys.stats() }),
-        queryClient.invalidateQueries({ queryKey: attachmentKeys.lists() }),
-      ];
-      if (memoName) {
-        invalidationPromises.push(queryClient.invalidateQueries({ queryKey: memoKeys.detail(memoName) }));
+      if (result.queuedOffline) {
+        // The save was queued locally: the caches were already patched by the
+        // queue, and invalidating now would only start refetches that cannot
+        // reach the server. The sync hook invalidates everything on flush.
+        toast.success(t("editor.queued-offline"));
       }
-      if (parentMemoName) {
-        invalidationPromises.push(queryClient.invalidateQueries({ queryKey: memoKeys.comments(parentMemoName) }));
-        invalidationPromises.push(queryClient.invalidateQueries({ queryKey: memoKeys.detail(parentMemoName) }));
+
+      const invalidationPromises: Promise<unknown>[] = [];
+      if (!result.queuedOffline) {
+        invalidationPromises.push(
+          queryClient.invalidateQueries({ queryKey: memoKeys.lists() }),
+          queryClient.invalidateQueries({ queryKey: userKeys.stats() }),
+          queryClient.invalidateQueries({ queryKey: attachmentKeys.lists() }),
+        );
+        if (memoName) {
+          invalidationPromises.push(queryClient.invalidateQueries({ queryKey: memoKeys.detail(memoName) }));
+        }
+        if (parentMemoName) {
+          invalidationPromises.push(queryClient.invalidateQueries({ queryKey: memoKeys.comments(parentMemoName) }));
+          invalidationPromises.push(queryClient.invalidateQueries({ queryKey: memoKeys.detail(parentMemoName) }));
+        }
       }
       // Hosts that close after saving (edit, comment) hold a brief "Saved"
       // confirmation on the toolbar while the caches refresh underneath. The

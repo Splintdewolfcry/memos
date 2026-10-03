@@ -38,6 +38,9 @@ vi.mock("@/utils/i18n", () => ({
   useTranslate: () => (key: string) => key,
 }));
 
+const toasts = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+vi.mock("react-hot-toast", () => ({ toast: toasts }));
+
 describe("useMemoSave", () => {
   beforeEach(() => {
     mocks.dispatch.mockReset();
@@ -100,5 +103,23 @@ describe("useMemoSave", () => {
 
     const savedOn = mocks.dispatch.mock.calls.some(([action]) => action.type === "set-just-saved" && action.value === true);
     expect(savedOn).toBe(false);
+  });
+
+  it("skips invalidations for a save queued offline and confirms it to the user", async () => {
+    mocks.memoSave.mockResolvedValue({ hasChanges: true, memoName: "offline/queued", queuedOffline: true });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
+    const wrapper = ({ children }: PropsWithChildren) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    const discardDraft = vi.fn();
+    const { result } = renderHook(() => useMemoSave({ discardDraft }), { wrapper });
+
+    await act(async () => result.current());
+
+    // Refetches cannot reach the server while offline; the sync hook
+    // invalidates everything once the queue is flushed.
+    expect(invalidateQueries).not.toHaveBeenCalled();
+    expect(toasts.success).toHaveBeenCalledWith("editor.queued-offline");
+    expect(discardDraft).toHaveBeenCalledOnce();
+    expect(mocks.markNewMemo).toHaveBeenCalledWith("offline/queued");
   });
 });

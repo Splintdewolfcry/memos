@@ -158,6 +158,7 @@
       "uploading-images": "Laster opp bilder {{completed}}/{{total}}"
     },
     "no-changes-detected": "Ingen endringer oppdaget",
+    "queued-offline": "Lagret på denne enheten. Lastes opp når du kobler til igjen.",
     "save": "Lagre",
     "audio-recorder": {
       "attachment-label": "Lydopptak",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "Endringer du lagrer, beholdes på denne enheten og synkroniseres når du kobler til igjen.",
+    "pending_one": "{{count}} endring venter på synkronisering.",
+    "pending_other": "{{count}} endringer venter på synkronisering."
   }
 }

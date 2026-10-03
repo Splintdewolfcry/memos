@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   isOffline: false,
   currentUser: undefined as { name: string } | undefined,
   sseStatus: "disconnected" as "connected" | "connecting" | "disconnected",
+  pendingCount: 0,
 }));
 
 vi.mock("@/contexts/AuthContext", () => ({
@@ -14,6 +15,10 @@ vi.mock("@/contexts/AuthContext", () => ({
 
 vi.mock("@/hooks/useLiveMemoRefresh", () => ({
   useSSEConnectionStatus: (): SSEConnectionStatus => mocks.sseStatus,
+}));
+
+vi.mock("@/hooks/useOfflineWriteCount", () => ({
+  useOfflineWriteCount: (): number => mocks.pendingCount,
 }));
 
 vi.mock("@/utils/i18n", () => ({ useTranslate: () => (key: string) => key }));
@@ -40,6 +45,7 @@ beforeEach(() => {
   mocks.isOffline = false;
   mocks.currentUser = undefined;
   mocks.sseStatus = "disconnected";
+  mocks.pendingCount = 0;
   stubNavigatorOnLine(true);
 });
 
@@ -100,5 +106,37 @@ describe("OfflineBanner", () => {
     render(<OfflineBanner />);
 
     expect(screen.queryByText("offlineBanner.title")).not.toBeInTheDocument();
+  });
+
+  it("announces how many offline changes are waiting to sync", () => {
+    mocks.isOffline = true;
+    mocks.currentUser = { name: "users/steven" };
+    mocks.pendingCount = 2;
+
+    render(<OfflineBanner />);
+
+    expect(screen.getByText("offlineBanner.pending_other")).toBeInTheDocument();
+  });
+
+  it("uses the singular form for a single pending change", () => {
+    mocks.isOffline = true;
+    mocks.currentUser = { name: "users/steven" };
+    mocks.pendingCount = 1;
+
+    render(<OfflineBanner />);
+
+    expect(screen.getByText("offlineBanner.pending_one")).toBeInTheDocument();
+    expect(screen.queryByText("offlineBanner.pending_other")).not.toBeInTheDocument();
+  });
+
+  it("stays quiet about the sync queue when nothing is pending", () => {
+    mocks.isOffline = true;
+    mocks.currentUser = { name: "users/steven" };
+    mocks.pendingCount = 0;
+
+    render(<OfflineBanner />);
+
+    expect(screen.queryByText("offlineBanner.pending_one")).not.toBeInTheDocument();
+    expect(screen.queryByText("offlineBanner.pending_other")).not.toBeInTheDocument();
   });
 });

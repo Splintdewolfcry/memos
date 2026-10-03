@@ -158,6 +158,7 @@
       "uploading-images": "Chargement des images {{completed}}/{{total}}"
     },
     "no-changes-detected": "Aucun changement détecté",
+    "queued-offline": "Enregistré sur cet appareil. Il sera envoyé à la reconnexion.",
     "save": "Enregistrer",
     "audio-recorder": {
       "attachment-label": "Enregistrement audio",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "Les changements enregistrés sont conservés sur cet appareil et seront synchronisés à la reconnexion.",
+    "pending_one": "{{count}} changement attend la synchronisation.",
+    "pending_other": "{{count}} changements attendent la synchronisation."
   }
 }

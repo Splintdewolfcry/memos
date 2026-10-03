@@ -194,6 +194,7 @@
     },
     "new-memo": "新建备忘录",
     "no-changes-detected": "未检测到更改",
+    "queued-offline": "已保存到本设备，重新连接后将自动上传。",
     "save": "保存",
     "validation": {
       "cannot-save": "无法保存",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "保存的更改会保留在本设备上，并在重新连接后同步。",
+    "pending_one": "{{count}} 项更改正在等待同步。",
+    "pending_other": "{{count}} 项更改正在等待同步。"
   }
 }

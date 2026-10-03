@@ -147,6 +147,7 @@
     "focus-mode": "フォーカスモード",
     "formatting-toolbar": "書式ツールバー",
     "no-changes-detected": "変更はありません",
+    "queued-offline": "この端末に保存しました。再接続時にアップロードされます。",
     "save": "保存",
     "insert-menu": {
       "add-location": "場所を追加",
@@ -1027,6 +1028,8 @@
   },
   "offlineBanner": {
     "title": "You're offline",
-    "description": "Changes can't be saved until you reconnect."
+    "description": "保存した変更はこの端末に保持され、再接続すると同期されます。",
+    "pending_one": "{{count}}件の変更が同期待ちです。",
+    "pending_other": "{{count}}件の変更が同期待ちです。"
   }
 }
